@@ -1,0 +1,8 @@
+Commands
+
+mpicc -o <file> <file.c>
+mpirun <file>
+
+mpicc test.c -o hello
+mpirun -np 4 ./hello
+
