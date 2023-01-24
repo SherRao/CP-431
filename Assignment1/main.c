@@ -98,11 +98,11 @@ void collectResults(int processes)
     int resultEnd;
     int resultGap;
 
-    int edgePrimeStarts[processes] = malloc(sizeof(int) * processes);
-    int edgePrimeEnds[processes] = malloc(sizeof(int) * processes);
-    int primeGapStarts[processes] = malloc(sizeof(int) * processes);
-    int primeGapEnds[processes] = malloc(sizeof(int) * processes);
-    int primeGaps[processes] = malloc(sizeof(int) * processes);
+    int *edgePrimeStarts = malloc(sizeof(int) * processes);
+    int *edgePrimeEnds = malloc(sizeof(int) * processes);
+    int *primeGapStarts = malloc(sizeof(int) * processes);
+    int *primeGapEnds = malloc(sizeof(int) * processes);
+    int *primeGaps = malloc(sizeof(int) * processes);
 
     int *status;
     char message[1000];
