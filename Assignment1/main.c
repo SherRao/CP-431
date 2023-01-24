@@ -9,10 +9,10 @@
 #define ulint unsigned long int
 #define tag 1000
 
-void childProcess(int);
 void mainProcess(int);
-void collectResults(int);
+void childProcess(int, int);
 void calculateLargestPrimeDiff(int, int, ulint *, ulint *, ulint *, ulint *, ulint *);
+void collectResults(int);
 
 int main(int argc, char **argv)
 {
