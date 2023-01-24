@@ -14,6 +14,8 @@ void mainProcess(int);
 void childProcess(int, int);
 void calculateLargestPrimeDiff(int, int, ulint *, ulint *, ulint *, ulint *, ulint *);
 void collectResults(int);
+ulint getNextPrime(ulint);
+ulint isPrime(ulint);
 
 int main(int argc, char **argv)
 {
