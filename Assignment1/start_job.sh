@@ -11,5 +11,6 @@ cd $SLURM_SUBMIT_DIR
 
 module load gcc
 module load openmpi
+module load gmp
 
 mpirun ./main

@@ -1,15 +1,17 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
-#include "main.h"
 #include "mpi.h"
 #include "gmp.h"
-#define MAX_PRIMES 1000000000000
+
+#define MAX_PRIME 1000000000000
+#define ulint unsigned long int
 
 int main(int argc, char **argv)
 {
     int processes;
     int rank;
-
     if (MPI_Init(&argc, &argv) != MPI_SUCCESS)
     {
         printf("MPI_Init failed!");
@@ -19,13 +21,10 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &processes);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0)
-    {
         mainProcess();
-    }
+
     else
-    {
         childProcess(rank);
-    }
 
     MPI_Finalize();
 }
@@ -37,32 +36,33 @@ void mainProcess()
 
 void childProcess(int rank)
 {
-    int start;
-    int end;
-    int a;
-    int b;
-    int gap;
-    calculateLargestPrimeDiff(rank, &start, &end, &a, &b, &gap);
+    ulint smallestPrime;
+    ulint largestPrime;
+    ulint largestPrimeGapStart;
+    ulint largestPrimeGapEnd;
+    ulint largestPrimeGap;
+    calculateLargestPrimeDiff(rank, &smallestPrime, &largestPrime, &largestPrimeGapStart, &largestPrimeGapEnd, &largestPrimeGap);
 
     char message[1000];
-    sprintf(message, "%d,%d,%d,%d,%d", start, end, a, b, gap);
+    sprintf(message, "%lu,%lu,%lu,%lu,%lu", smallestPrime, largestPrime, largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
     MPI_Send(message, 100, MPI_CHAR, 0, tag, MPI_COMM_WORLD);
 }
 
-void calculateLargestPrimeDiff(int rank, int *smallestPrime, int *largestPrime, int *a, int *b, int *gap))
+void calculateLargestPrimeDiff(int rank, ulint *smallestPrime, ulint *largestPrime, ulint *largestPrimeGapStart, ulint *largestPrimeGapEnd, ulint *largestPrimeGap)
 {
-    long unsigned int divisions = MAX_PRIME / processes;
-    long unsigned int rangeStart = (rank - 1) * divisions;
-    long unsigned int rangeEnd = rank * divisions;
+    ulint divisions = MAX_PRIME / processes;
+    ulint rangeStart = (rank - 1) * divisions;
+    ulint rangeEnd = rank * divisions;
 
-    long unsigned int primeGapStart = -1;
-    long unsigned int primeGapEnd = -1;
-    long unsigned int primeGap = -1;
+    ulint primeGapStart = -1;
+    ulint primeGapEnd = -1;
+    ulint primeGap = -1;
 
     mpz_t a;
     mpz_init(a);
     mpz_set_ui(a, rangeStart);
     mpz_nextprime(a, a);
+    *smallestPrime = a;
 
     mpz_t b;
     mpz_init(b);
@@ -71,25 +71,19 @@ void calculateLargestPrimeDiff(int rank, int *smallestPrime, int *largestPrime, 
 
     while (b < rangeEnd)
     {
+        *largestPrime = b;
         int gap = b - a;
         printf("Prime gap for %d and %d: %d", a, b, gap);
         if (gap > primeGap)
         {
-            primeGapStart = a;
-            primeGapEnd = b;
-            primeGap = gap;
+            *largestPrimeGapStart = a;
+            *largestPrimeGapEnd = b;
+            *largestPrimeGap = gap;
         }
 
-        mpz_nextprime(a, a);
+        mpz_set_ui(a, b);
         mpz_nextprime(b, b);
     }
-
-    // TODO: mpz_nextprime
-    *smallestPrime = rangeStart;
-    *largestPrime = rangeEnd;
-    *a = primeGapStart;
-    *b = primeGapEnd;
-    *gap = primeGap;
 }
 
 void collectResults()
@@ -107,7 +101,7 @@ void collectResults()
     int status;
     char message[1000];
 
-    // Receive messages from child processe and store the data
+    // Receive messages from child processes and store the data.
     for (int i = 1; i < processes; i++)
     {
         MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, &status);
@@ -124,7 +118,7 @@ void collectResults()
         primeGaps[i] = primeGap;
     }
 
-    // Find the largest prime gap
+    // Find the largest prime gap.
     int largestPrimeGap = -1;
     int largestPrimeGapStart = -1;
     int largestPrimeGapEnd = -1;
@@ -138,23 +132,23 @@ void collectResults()
         }
     }
 
-    // Find the largest edge prime gap
-    // TODO: Fix logic.
+    // Find the largest edge prime gap.
+    // Ignore the first start edge prime gap.
     int largestEdgePrimeGap = -1;
     int largestEdgePrimeGapStart = -1;
     int largestEdgePrimeGapEnd = -1;
-    for (int i = 1; i < processes; i++)
+    for (int i = 0; i < processes - 1; i++)
     {
-        int gap = edgePrimeEnds[i] - edgePrimeStarts[i];
+        int gap = edgePrimeEnds[i] - edgePrimeStarts[i + 1];
         if (gap > largestEdgePrimeGap)
         {
             largestEdgePrimeGap = gap;
             largestEdgePrimeGapStart = edgePrimeStarts[i];
-            largestEdgePrimeGapEnd = edgePrimeEnds[i];
+            largestEdgePrimeGapEnd = edgePrimeEnds[i + 1];
         }
     }
 
-    // Compare the largest prime gap and the largest edge prime gap
+    // Compare the largest prime gap and the largest edge prime gap.
     if (largestPrimeGap > largestEdgePrimeGap)
     {
         resultGap = largestPrimeGap;
