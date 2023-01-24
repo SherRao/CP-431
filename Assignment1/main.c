@@ -7,6 +7,7 @@
 
 #define MAX_PRIME 1000000000000
 #define ulint unsigned long int
+#define tag 1000
 
 int main(int argc, char **argv)
 {
@@ -21,7 +22,7 @@ int main(int argc, char **argv)
     MPI_Comm_size(MPI_COMM_WORLD, &processes);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     if (rank == 0)
-        mainProcess();
+        mainProcess(processes);
 
     else
         childProcess(rank);
@@ -29,9 +30,9 @@ int main(int argc, char **argv)
     MPI_Finalize();
 }
 
-void mainProcess()
+void mainProcess(int processes)
 {
-    collectResults();
+    collectResults(processes);
 }
 
 void childProcess(int rank)
@@ -86,7 +87,7 @@ void calculateLargestPrimeDiff(int rank, ulint *smallestPrime, ulint *largestPri
     }
 }
 
-void collectResults()
+void collectResults(int processes)
 {
     int resultStart;
     int resultEnd;
