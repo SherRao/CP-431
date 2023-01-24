@@ -3,6 +3,7 @@
 #include "main.h"
 #include "mpi.h"
 #include "gmp.h"
+#define MAX_PRIMES 1000000000000
 
 int main(int argc, char **argv)
 {
