@@ -12,7 +12,7 @@
 void childProcess(int);
 void mainProcess(int);
 void collectResults(int);
-void calculateLargestPrimeDiff(int, ulint *, ulint *, ulint *, ulint *, ulint *);
+void calculateLargestPrimeDiff(int, int, ulint *, ulint *, ulint *, ulint *, ulint *);
 
 int main(int argc, char **argv)
 {
@@ -30,7 +30,7 @@ int main(int argc, char **argv)
         mainProcess(processes);
 
     else
-        childProcess(rank);
+        childProcess(rank, processes);
 
     MPI_Finalize();
 }
@@ -40,21 +40,21 @@ void mainProcess(int processes)
     collectResults(processes);
 }
 
-void childProcess(int rank)
+void childProcess(int rank, int processes)
 {
     ulint smallestPrime;
     ulint largestPrime;
     ulint largestPrimeGapStart;
     ulint largestPrimeGapEnd;
     ulint largestPrimeGap;
-    calculateLargestPrimeDiff(rank, &smallestPrime, &largestPrime, &largestPrimeGapStart, &largestPrimeGapEnd, &largestPrimeGap);
+    calculateLargestPrimeDiff(rank, processes, &smallestPrime, &largestPrime, &largestPrimeGapStart, &largestPrimeGapEnd, &largestPrimeGap);
 
     char message[1000];
     sprintf(message, "%lu,%lu,%lu,%lu,%lu", smallestPrime, largestPrime, largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
     MPI_Send(message, 100, MPI_CHAR, 0, tag, MPI_COMM_WORLD);
 }
 
-void calculateLargestPrimeDiff(int rank, ulint *smallestPrime, ulint *largestPrime, ulint *largestPrimeGapStart, ulint *largestPrimeGapEnd, ulint *largestPrimeGap)
+void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ulint *largestPrime, ulint *largestPrimeGapStart, ulint *largestPrimeGapEnd, ulint *largestPrimeGap)
 {
     ulint divisions = MAX_PRIME / processes;
     ulint rangeStart = (rank - 1) * divisions;
