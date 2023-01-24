@@ -9,6 +9,11 @@
 #define ulint unsigned long int
 #define tag 1000
 
+void childProcess(int);
+void mainProcess(int);
+void collectResults(int);
+void calculateLargestPrimeDiff(int, ulint *, ulint *, ulint *, ulint *, ulint *);
+
 int main(int argc, char **argv)
 {
     int processes;
@@ -93,13 +98,13 @@ void collectResults(int processes)
     int resultEnd;
     int resultGap;
 
-    int edgePrimeStarts[processes] = {0};
-    int edgePrimeEnds[processes] = {0};
-    int primeGapStarts[processes] = {0};
-    int primeGapEnds[processes] = {0};
-    int primeGaps[processes] = {0};
+    int edgePrimeStarts[processes] = malloc(sizeof(int) * processes);
+    int edgePrimeEnds[processes] = malloc(sizeof(int) * processes);
+    int primeGapStarts[processes] = malloc(sizeof(int) * processes);
+    int primeGapEnds[processes] = malloc(sizeof(int) * processes);
+    int primeGaps[processes] = malloc(sizeof(int) * processes);
 
-    int status;
+    int *status;
     char message[1000];
 
     // Receive messages from child processes and store the data.
