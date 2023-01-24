@@ -75,7 +75,7 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
         *largestPrime = b;
         int gap = b - a;
 
-        printf("Rank: %d || Prime gap for %d and %d: %d\n", rank, a, b, gap);
+        // printf("Rank: %d || Prime gap for %d and %d: %d\n", rank, a, b, gap);
         if (gap > primeGap)
         {
             *largestPrimeGapStart = a;
@@ -112,6 +112,7 @@ void collectResults(int processes)
         int primeGapStart = atoi(strtok(NULL, ","));
         int primeGapEnd = atoi(strtok(NULL, ","));
         int primeGap = atoi(strtok(NULL, ","));
+        printf("Rank: %d || Range: %d - %d || Prime gap: %d - %d || Gap: %d", i, rangeStart, rangeEnd, primeGapStart, primeGapEnd, primeGap);
 
         edgePrimeStarts[i] = rangeStart;
         edgePrimeEnds[i] = rangeEnd;
@@ -133,6 +134,7 @@ void collectResults(int processes)
             largestPrimeGapEnd = primeGapEnds[i];
         }
     }
+    printf("Largest prime gap: %d - %d || Gap: %d", largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
 
     // Find the largest edge prime gap.
     // Ignore the first start edge prime gap.
@@ -149,6 +151,7 @@ void collectResults(int processes)
             largestEdgePrimeGapEnd = edgePrimeEnds[i + 1];
         }
     }
+    printf("Largest edge prime gap: %d - %d || Gap: %d", largestEdgePrimeGapStart, largestEdgePrimeGapEnd, largestEdgePrimeGap);
 
     // Compare the largest prime gap and the largest edge prime gap.
     if (largestPrimeGap > largestEdgePrimeGap)
@@ -163,6 +166,7 @@ void collectResults(int processes)
         resultStart = largestEdgePrimeGapStart;
         resultEnd = largestEdgePrimeGapEnd;
     }
+    printf("Largest gap: %d - %d || Gap: %d", resultStart, resultEnd, resultGap);
 }
 
 ulint getNextPrime(ulint x)
