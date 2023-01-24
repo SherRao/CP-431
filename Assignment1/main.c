@@ -68,7 +68,7 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
     mpz_init(a);
     mpz_set_ui(a, rangeStart);
     mpz_nextprime(a, a);
-    *smallestPrime = a;
+    *smallestPrime = *a;
 
     mpz_t b;
     mpz_init(b);
@@ -77,13 +77,13 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
 
     while (b < rangeEnd)
     {
-        *largestPrime = b;
-        int gap = b - a;
+        *largestPrime = *b;
+        ulint gap = b - a;
         printf("Prime gap for %d and %d: %d", a, b, gap);
         if (gap > primeGap)
         {
-            *largestPrimeGapStart = a;
-            *largestPrimeGapEnd = b;
+            *largestPrimeGapStart = *a;
+            *largestPrimeGapEnd = *b;
             *largestPrimeGap = gap;
         }
 
