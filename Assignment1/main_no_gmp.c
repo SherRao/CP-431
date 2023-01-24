@@ -23,7 +23,7 @@ int main(int argc, char **argv)
     int rank;
     if (MPI_Init(&argc, &argv) != MPI_SUCCESS)
     {
-        printf("MPI_Init failed!");
+        printf("MPI_Init failed!\n");
         exit(0);
     }
 
@@ -75,7 +75,7 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
         *largestPrime = b;
         int gap = b - a;
 
-        printf("Prime gap for %d and %d: %d", a, b, gap);
+        printf("Rank: %d || Prime gap for %d and %d: %d\n", rank, a, b, gap);
         if (gap > primeGap)
         {
             *largestPrimeGapStart = a;
@@ -86,33 +86,6 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
         a = b;
         b = getNextPrime(b);
     }
-
-    // mpz_t a; //-> int[1]
-    // mpz_init(a);
-    // mpz_set_ui(a, rangeStart);
-    // mpz_nextprime(a, a);
-    // *smallestPrime = a;
-
-    // mpz_t b;
-    // mpz_init(b);
-    // mpz_set_ui(b, a);
-    // mpz_nextprime(b, b);
-
-    // while (b < rangeEnd)
-    // {
-    //     *largestPrime = b;
-    //     int gap = b - a;
-    //     printf("Prime gap for %d and %d: %d", a, b, gap);
-    //     if (gap > primeGap)
-    //     {
-    //         *largestPrimeGapStart = a;
-    //         *largestPrimeGapEnd = b;
-    //         *largestPrimeGap = gap;
-    //     }
-
-    //     mpz_set_ui(a, b);
-    //     mpz_nextprime(b, b);
-    // }
 }
 
 void collectResults(int processes)
