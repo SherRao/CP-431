@@ -5,6 +5,7 @@
 #include "mpi.h"
 
 #define MAX_PRIME 1000000000000
+#define NUMBERS_BETWEEN_UPDATES 10000000
 #define ulint unsigned long int
 #define true 1
 #define false 0
@@ -60,6 +61,7 @@ void childProcess(int rank, int processes)
 void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ulint *largestPrime,
                                ulint *largestPrimeGapStart, ulint *largestPrimeGapEnd, ulint *largestPrimeGap)
 {
+
     ulint divisions = MAX_PRIME / processes;
     ulint rangeStart = (rank - 1) * divisions;
     ulint rangeEnd = rank * divisions;
@@ -70,6 +72,7 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
 
     ulint a = getNextPrime(rangeStart);
     ulint b = getNextPrime(a);
+    ulint lastPrimeUpdate = a;
     while (b < rangeEnd)
     {
         *largestPrime = b;
@@ -85,114 +88,118 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
 
         a = b;
         b = getNextPrime(b);
-    }
-}
-
-void collectResults(int processes)
-{
-    int resultStart;
-    int resultEnd;
-    int resultGap;
-
-    int *edgePrimeStarts = malloc(sizeof(int) * processes);
-    int *edgePrimeEnds = malloc(sizeof(int) * processes);
-    int *primeGapStarts = malloc(sizeof(int) * processes);
-    int *primeGapEnds = malloc(sizeof(int) * processes);
-    int *primeGaps = malloc(sizeof(int) * processes);
-
-    // MPI_Status *status;
-    char message[1000];
-
-    // Receive messages from child processes and store the data.
-    for (int i = 1; i < processes; i++)
-    {
-        MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        int rangeStart = atoi(strtok(message, ","));
-        int rangeEnd = atoi(strtok(NULL, ","));
-        int primeGapStart = atoi(strtok(NULL, ","));
-        int primeGapEnd = atoi(strtok(NULL, ","));
-        int primeGap = atoi(strtok(NULL, ","));
-        printf("Rank: %d || Range: %d - %d || Prime gap: %d - %d || Gap: %d", i, rangeStart, rangeEnd, primeGapStart, primeGapEnd, primeGap);
-
-        edgePrimeStarts[i] = rangeStart;
-        edgePrimeEnds[i] = rangeEnd;
-        primeGapStarts[i] = primeGapStart;
-        primeGapEnds[i] = primeGapEnd;
-        primeGaps[i] = primeGap;
-    }
-
-    // Find the largest prime gap.
-    int largestPrimeGap = -1;
-    int largestPrimeGapStart = -1;
-    int largestPrimeGapEnd = -1;
-    for (int i = 1; i < processes; i++)
-    {
-        if (primeGaps[i] > largestPrimeGap)
+        if (a - lastPrimeUpdate >= NUMBERS_BETWEEN_UPDATES)
         {
-            largestPrimeGap = primeGaps[i];
-            largestPrimeGapStart = primeGapStarts[i];
-            largestPrimeGapEnd = primeGapEnds[i];
+            lastPrimeUpdate = a;
+            printf("Rank: %d || Current prime: %d, Largest prime gap: %d - %d || Gap: %d", rank, a, *largestPrimeGapStart, *largestPrimeGapEnd, *largestPrimeGap);
         }
     }
-    printf("Largest prime gap: %d - %d || Gap: %d", largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
 
-    // Find the largest edge prime gap.
-    // Ignore the first start edge prime gap.
-    int largestEdgePrimeGap = -1;
-    int largestEdgePrimeGapStart = -1;
-    int largestEdgePrimeGapEnd = -1;
-    for (int i = 0; i < processes - 1; i++)
+    void collectResults(int processes)
     {
-        int gap = edgePrimeEnds[i] - edgePrimeStarts[i + 1];
-        if (gap > largestEdgePrimeGap)
+        int resultStart;
+        int resultEnd;
+        int resultGap;
+
+        int *edgePrimeStarts = malloc(sizeof(int) * processes);
+        int *edgePrimeEnds = malloc(sizeof(int) * processes);
+        int *primeGapStarts = malloc(sizeof(int) * processes);
+        int *primeGapEnds = malloc(sizeof(int) * processes);
+        int *primeGaps = malloc(sizeof(int) * processes);
+
+        // MPI_Status *status;
+        char message[1000];
+
+        // Receive messages from child processes and store the data.
+        for (int i = 1; i < processes; i++)
         {
-            largestEdgePrimeGap = gap;
-            largestEdgePrimeGapStart = edgePrimeStarts[i];
-            largestEdgePrimeGapEnd = edgePrimeEnds[i + 1];
+            MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            int rangeStart = atoi(strtok(message, ","));
+            int rangeEnd = atoi(strtok(NULL, ","));
+            int primeGapStart = atoi(strtok(NULL, ","));
+            int primeGapEnd = atoi(strtok(NULL, ","));
+            int primeGap = atoi(strtok(NULL, ","));
+            printf("Rank: %d || Range: %d - %d || Prime gap: %d - %d || Gap: %d", i, rangeStart, rangeEnd, primeGapStart, primeGapEnd, primeGap);
+
+            edgePrimeStarts[i] = rangeStart;
+            edgePrimeEnds[i] = rangeEnd;
+            primeGapStarts[i] = primeGapStart;
+            primeGapEnds[i] = primeGapEnd;
+            primeGaps[i] = primeGap;
         }
+
+        // Find the largest prime gap.
+        int largestPrimeGap = -1;
+        int largestPrimeGapStart = -1;
+        int largestPrimeGapEnd = -1;
+        for (int i = 1; i < processes; i++)
+        {
+            if (primeGaps[i] > largestPrimeGap)
+            {
+                largestPrimeGap = primeGaps[i];
+                largestPrimeGapStart = primeGapStarts[i];
+                largestPrimeGapEnd = primeGapEnds[i];
+            }
+        }
+        printf("Largest prime gap: %d - %d || Gap: %d", largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
+
+        // Find the largest edge prime gap.
+        // Ignore the first start edge prime gap.
+        int largestEdgePrimeGap = -1;
+        int largestEdgePrimeGapStart = -1;
+        int largestEdgePrimeGapEnd = -1;
+        for (int i = 0; i < processes - 1; i++)
+        {
+            int gap = edgePrimeEnds[i] - edgePrimeStarts[i + 1];
+            if (gap > largestEdgePrimeGap)
+            {
+                largestEdgePrimeGap = gap;
+                largestEdgePrimeGapStart = edgePrimeStarts[i];
+                largestEdgePrimeGapEnd = edgePrimeEnds[i + 1];
+            }
+        }
+        printf("Largest edge prime gap: %d - %d || Gap: %d", largestEdgePrimeGapStart, largestEdgePrimeGapEnd, largestEdgePrimeGap);
+
+        // Compare the largest prime gap and the largest edge prime gap.
+        if (largestPrimeGap > largestEdgePrimeGap)
+        {
+            resultGap = largestPrimeGap;
+            resultStart = largestPrimeGapStart;
+            resultEnd = largestPrimeGapEnd;
+        }
+        else
+        {
+            resultGap = largestEdgePrimeGap;
+            resultStart = largestEdgePrimeGapStart;
+            resultEnd = largestEdgePrimeGapEnd;
+        }
+        printf("Largest gap: %d - %d || Gap: %d", resultStart, resultEnd, resultGap);
     }
-    printf("Largest edge prime gap: %d - %d || Gap: %d", largestEdgePrimeGapStart, largestEdgePrimeGapEnd, largestEdgePrimeGap);
 
-    // Compare the largest prime gap and the largest edge prime gap.
-    if (largestPrimeGap > largestEdgePrimeGap)
+    ulint getNextPrime(ulint x)
     {
-        resultGap = largestPrimeGap;
-        resultStart = largestPrimeGapStart;
-        resultEnd = largestPrimeGapEnd;
+        ulint i = x + 1;
+        while (!isPrime(i))
+            i++;
+
+        return i;
     }
-    else
+
+    ulint isPrime(ulint x)
     {
-        resultGap = largestEdgePrimeGap;
-        resultStart = largestEdgePrimeGapStart;
-        resultEnd = largestEdgePrimeGapEnd;
-    }
-    printf("Largest gap: %d - %d || Gap: %d", resultStart, resultEnd, resultGap);
-}
+        if (x == 2)
+            return true;
 
-ulint getNextPrime(ulint x)
-{
-    ulint i = x + 1;
-    while (!isPrime(i))
-        i++;
-
-    return i;
-}
-
-ulint isPrime(ulint x)
-{
-    if (x == 2)
-        return true;
-
-    if (x == 1 || x % 2 == 0)
-        return false;
-
-    ulint i = 2;
-    while (i * i < x)
-    {
-        if (x % i == 0)
+        if (x == 1 || x % 2 == 0)
             return false;
 
-        i++;
+        ulint i = 2;
+        while (i * i < x)
+        {
+            if (x % i == 0)
+                return false;
+
+            i++;
+        }
+        return true;
     }
-    return true;
-}
