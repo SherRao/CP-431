@@ -106,7 +106,7 @@ void collectResults(int processes)
     // Receive messages from child processes and store the data.
     for (int i = 1; i < processes; i++)
     {
-        MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, &status);
+        MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, status);
         int rangeStart = atoi(strtok(message, ","));
         int rangeEnd = atoi(strtok(NULL, ","));
         int primeGapStart = atoi(strtok(NULL, ","));
