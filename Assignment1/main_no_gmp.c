@@ -100,13 +100,13 @@ void collectResults(int processes)
     int *primeGapEnds = malloc(sizeof(int) * processes);
     int *primeGaps = malloc(sizeof(int) * processes);
 
-    MPI_Status *status;
+    // MPI_Status *status;
     char message[1000];
 
     // Receive messages from child processes and store the data.
     for (int i = 1; i < processes; i++)
     {
-        MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, status);
+        MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         int rangeStart = atoi(strtok(message, ","));
         int rangeEnd = atoi(strtok(NULL, ","));
         int primeGapStart = atoi(strtok(NULL, ","));
