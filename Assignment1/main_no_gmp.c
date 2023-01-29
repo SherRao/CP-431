@@ -100,7 +100,7 @@ void collectResults(int processes)
     int *primeGapEnds = malloc(sizeof(int) * processes);
     int *primeGaps = malloc(sizeof(int) * processes);
 
-    int *status;
+    MPI_Status *status;
     char message[1000];
 
     // Receive messages from child processes and store the data.
