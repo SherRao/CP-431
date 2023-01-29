@@ -203,3 +203,4 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
         }
         return true;
     }
+}
