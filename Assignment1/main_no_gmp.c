@@ -186,9 +186,13 @@ ulint isPrime(ulint x)
     if (x == 1 || x % 2 == 0)
         return false;
 
-    for (ulint i = 2; i < sqrt(x); i++)
+    ulint i = 2;
+    while (i * i < x)
+    {
         if (x % i == 0)
             return false;
 
+        i++;
+    }
     return true;
 }
