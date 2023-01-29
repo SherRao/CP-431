@@ -9,6 +9,7 @@
 
 #define MAX(A, B) (A > B ? A : B)
 #define MIN(A, B) (A < B ? A : B)
+#define MAX_PRIME 100000000 // hundred mil
 
 void print_mpz(char tag[], mpz_t n, char end[]) {
 	printf("%s = ", tag);
@@ -25,10 +26,7 @@ int main(int argc, char** argv) {
 		int flag_N;
 
 		mpz_init(N);
-		mpz_set_ui(N,0);
-
-		flag_N = mpz_set_str(N, argv[1], 10);
-		assert (flag_N == 0);
+		mpz_set_ui(N,MAX_PRIME);
 
 		// timer variables
 		double time1, time2, duration, global_duration;
