@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-int segmentedSieve(int n, int first_primes[], int count, int start);
+int segmentedSieve(int n, int first_primes[], int count, int start, int gap_i[]);
 
 int SieveOfEratosthenes(int n, int lst[])
 {
@@ -47,6 +47,7 @@ int main()
     int n = 1000000000;
     int largest_gap = 0;
     int G = 0;
+    int gap_i [2] = {0, 0};
 
     float sqt = sqrt(n);
     int flr = floor(sqt) + 1;
@@ -64,23 +65,24 @@ int main()
     for (int i = block_size; i < n; i += block_size)
     {
         if (i > n == false)
-            G = segmentedSieve(block_size + i - 1, x, count, i);
+            G = segmentedSieve(block_size + i - 1, x, count, i, gap_i);
 
         if (G > largest_gap)
         {
             largest_gap = G;
 
-            printf("%d\n", largest_gap);
+            
             G = 0;
         }
     }
 
     time_t endTime = time(NULL);
+    printf("%d from %d to %d\n", largest_gap, gap_i[0], gap_i[1]);
     printf("Time taken: %ld seconds\n", endTime - startTime);
     return 0;
 }
 
-int segmentedSieve(int n, int first_primes[], int count, int start)
+int segmentedSieve(int n, int first_primes[], int count, int start, int gap_i[])
 {
     float sqt = sqrt(n);
     int flr = floor(sqt) + 1;
@@ -135,10 +137,17 @@ int segmentedSieve(int n, int first_primes[], int count, int start)
         if (block[i] == true)
         {
             if (max_gap < gap)
+            {
                 max_gap = gap;
+                gap_i[1] = i + start;
+                gap_i[0] = gap_i[1] - gap;
+            }
             gap = 0;
         }
         gap++;
     }
+
+
+
     return max_gap;
 }
