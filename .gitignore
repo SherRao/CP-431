@@ -2,6 +2,7 @@ test.c
 *.vscode*
 *DS_Store*
 *gmp-6.2.1*
+.DS_Store
 
 # Prerequisites
 *.d
@@ -35,4 +36,3 @@ test.c
 *.exe
 *.out
 *.app
-*
