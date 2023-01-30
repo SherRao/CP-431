@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=8
-#SBATCH --time=$1
+#SBATCH --time=00:10:00
 #SBATCH --job-name mpi_job
 #SBATCH --output=output/mpi_output_%j.txt
 #SBATCH --mail-type=ALL
