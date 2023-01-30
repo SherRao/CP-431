@@ -77,7 +77,7 @@ int main()
     }
 
     time_t endTime = time(NULL);
-    printf("%d from %d to %d\n", largest_gap, gap_i[0], gap_i[1]);
+    printf("%d from %d to %d\n", largest_gap, gap_i[1] - largest_gap, gap_i[1]);
     printf("Time taken: %ld seconds\n", endTime - startTime);
     return 0;
 }
@@ -140,7 +140,7 @@ int segmentedSieve(int n, int first_primes[], int count, int start, int gap_i[])
             {
                 max_gap = gap;
                 gap_i[1] = i + start;
-                gap_i[0] = gap_i[1] - gap;
+                gap_i[0] = gap_i[1] - max_gap;
             }
             gap = 0;
         }
