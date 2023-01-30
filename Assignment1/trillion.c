@@ -4,6 +4,7 @@
 #include <math.h>
 #include <mpi.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 int segmentedSieve(long n, int first_primes[], int count, long start);
 
@@ -56,7 +57,7 @@ int main()
     int count = SieveOfEratosthenes(n, x);
 
     //block must be larger than root N 
-    int block_size = 100000;
+    int block_size = 2000000;
 
 
     for (long i = block_size; i < n; i += block_size){
