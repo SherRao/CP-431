@@ -95,16 +95,16 @@ int main(int argc, char** argv) {
 			break;
 		}
 
-		// calculate the gap between current and previous prime
+		// Calculate the gap between current and previous prime
 		mpz_sub(gap, prime, prev);
 
-		// if this is the largest gap, then record it and the associated prime
+		// Ff this is the largest gap, then record it and the associated prime
 		if (mpz_cmp(gap, local_primegap[0]) >= 0) {
 			mpz_set(local_primegap[0], gap);
 			mpz_set(local_primegap[1], prime);
 		}
 
-		// update previous prime to currrent prime
+		// Update previous prime to currrent prime
 		mpz_set(prev, prime);
 	}
 
@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
 	duration = second_time - first_time;
 	printf("rank = %d, local duration = %lf\n", rank, duration);
 
-	// send first and last primes to root thread
+	// Send first and last primes to root thread
 	first_last_primes_ui[0] = mpz_get_ui(first_last_primes[0]);
 	first_last_primes_ui[1] = mpz_get_ui(first_last_primes[1]);
 
@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 		MPI_Send(first_last_primes_ui, 2, MPI_UNSIGNED_LONG, 0, 1, MPI_COMM_WORLD);
 	}
 
-	// get the local largest gap and associated prime in the form of unsigned long
+	// Get the local largest gap and associated prime in the form of unsigned long
 	local_primegap_ui[0] = mpz_get_ui(local_primegap[0]);
 	local_primegap_ui[1] = mpz_get_ui(local_primegap[1]);
 
