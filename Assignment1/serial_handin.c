@@ -42,7 +42,7 @@ int SieveOfEratosthenes(int n, int lst[])
 
 int main()
 {
-        int n = 100000000;
+        int n = 1000000000;
         int largest_gap = 0;
         int G = 0;
 
@@ -68,6 +68,7 @@ int main()
                 G = 0;
             }
         }
+        
         printf("%d", largest_gap);
 
     return 0;
