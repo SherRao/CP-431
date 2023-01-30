@@ -2,11 +2,7 @@
 #include <stdlib.h>
 #include <mpi.h>
 #include <gmp.h>
-#include <math.h>
-#include <assert.h>
 
-#define MAX(A, B) (A > B ? A : B)
-#define MIN(A, B) (A < B ? A : B)
 #define MAX_PRIME 100000000 // 10^8 (100 million)
 
 /* Prototypes */
@@ -26,8 +22,6 @@ int main(int argc, char** argv) {
 
 	// Initialize mpz_t variables
 	mpz_t N;
-	int flag_N;
-
 	mpz_init(N);
 	mpz_set_ui(N,MAX_PRIME);
 
@@ -35,7 +29,6 @@ int main(int argc, char** argv) {
 	double first_time, second_time, duration, global_duration;
 
 	// Declare prime variables
-	int flag;
 	mpz_t start, end, gap, prime, prev, load;
 
 	// Initialize above mpz_t variables and set initial values
