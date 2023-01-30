@@ -2,8 +2,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
-#include <mpi.h>
 #include <stdlib.h>
+#include <time.h>
 
 int segmentedSieve(int n, int first_primes[], int count, int start);
 
@@ -43,6 +43,7 @@ int SieveOfEratosthenes(int n, int lst[])
 
 int main()
 {
+    time_t startTime = time(NULL);
     int n = 1000000000;
     int largest_gap = 0;
     int G = 0;
@@ -57,13 +58,13 @@ int main()
 
     int count = SieveOfEratosthenes(n, x);
 
-    //block must be larger than root N
+    // block must be larger than root N
     int block_size = 50000;
 
-
-    for (int i = block_size; i < n; i += block_size){
-    if (i > n == false)
-        G = segmentedSieve(block_size + i - 1, x, count, i);
+    for (int i = block_size; i < n; i += block_size)
+    {
+        if (i > n == false)
+            G = segmentedSieve(block_size + i - 1, x, count, i);
 
         if (G > largest_gap)
         {
@@ -72,8 +73,10 @@ int main()
             printf("%d\n", largest_gap);
             G = 0;
         }
-   }
+    }
 
+    time_t endTime = time(NULL);
+    printf("Time taken: %ld seconds\n", endTime - startTime);
     return 0;
 }
 
@@ -127,13 +130,12 @@ int segmentedSieve(int n, int first_primes[], int count, int start)
         high = high + limit;
     }
 
-
     for (int i = 0; i <= n - start; i++)
     {
         if (block[i] == true)
         {
             if (max_gap < gap)
-            max_gap = gap;
+                max_gap = gap;
             gap = 0;
         }
         gap++;
