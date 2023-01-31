@@ -151,11 +151,11 @@ void collectResults(int processes)
     for (int i = 1; i < processes; i++)
     {
         MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        int rangeStart = atoi(strtok(message, ","));
-        int rangeEnd = atoi(strtok(NULL, ","));
-        int primeGapStart = atoi(strtok(NULL, ","));
-        int primeGapEnd = atoi(strtok(NULL, ","));
-        int primeGap = atoi(strtok(NULL, ","));
+        ulint rangeStart = atoi(strtok(message, ","));
+        ulint rangeEnd = atoi(strtok(NULL, ","));
+        ulint primeGapStart = atoi(strtok(NULL, ","));
+        ulint primeGapEnd = atoi(strtok(NULL, ","));
+        ulint primeGap = atoi(strtok(NULL, ","));
         printf("End || Rank: %d || Range: %d - %d || Prime gap: %d - %d || Gap: %d\n", i, rangeStart, rangeEnd, primeGapStart, primeGapEnd, primeGap);
 
         edgePrimeStarts[i] = rangeStart;
@@ -166,9 +166,9 @@ void collectResults(int processes)
     }
 
     // Find the largest prime gap.
-    int largestPrimeGap = -1;
-    int largestPrimeGapStart = -1;
-    int largestPrimeGapEnd = -1;
+    ulint largestPrimeGap = -1;
+    ulint largestPrimeGapStart = -1;
+    ulint largestPrimeGapEnd = -1;
     for (int i = 1; i < processes; i++)
     {
         if (primeGaps[i] > largestPrimeGap)
@@ -182,12 +182,12 @@ void collectResults(int processes)
 
     // Find the largest edge prime gap.
     // Ignore the first start edge prime gap.
-    int largestEdgePrimeGap = -1;
-    int largestEdgePrimeGapStart = -1;
-    int largestEdgePrimeGapEnd = -1;
+    ulint largestEdgePrimeGap = -1;
+    ulint largestEdgePrimeGapStart = -1;
+    ulint largestEdgePrimeGapEnd = -1;
     for (int i = 0; i < processes - 1; i++)
     {
-        int gap = edgePrimeEnds[i] - edgePrimeStarts[i + 1];
+        ulint gap = edgePrimeEnds[i] - edgePrimeStarts[i + 1];
         if (gap > largestEdgePrimeGap)
         {
             largestEdgePrimeGap = gap;
