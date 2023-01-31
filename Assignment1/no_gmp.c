@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include "mpi.h"
 
-#define MAX_PRIME 1000000000000
+#define MAX_PRIME_T 1000000000000
+#define MAX_PRIME 1000000000
 #define NUMBERS_BETWEEN_UPDATES 10000000
-#define ulint unsigned long int
+#define ulint long int
 #define true 1
 #define false 0
 #define tag 1000
@@ -52,7 +54,10 @@ int main(int argc, char **argv)
  */
 void mainProcess(int processes)
 {
+    time_t startTime = time(NULL);
     collectResults(processes);
+    time_t endTime = time(NULL);
+    printf("End || Time taken: %lu seconds\n", endTime - startTime);
 }
 
 /**
@@ -89,10 +94,10 @@ void childProcess(int rank, int processes)
 void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ulint *largestPrime,
                                ulint *largestPrimeGapStart, ulint *largestPrimeGapEnd, ulint *largestPrimeGap)
 {
-
     ulint divisions = MAX_PRIME / processes;
     ulint rangeStart = (rank - 1) * divisions;
     ulint rangeEnd = rank * divisions;
+    printf("Starting || Rank: %d || Divisions: %d || Range: %d - %d\n", rank, divisions, rangeStart, rangeEnd);
 
     ulint primeGapStart = -1;
     ulint primeGapEnd = -1;
@@ -118,7 +123,7 @@ void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ul
         if (a - lastPrimeUpdate >= NUMBERS_BETWEEN_UPDATES)
         {
             lastPrimeUpdate = a;
-            printf("Rank: %d || Current prime: %d, Largest prime gap: %d - %d || Gap: %d", rank, a, *largestPrimeGapStart, *largestPrimeGapEnd, *largestPrimeGap);
+            printf("Update || Rank: %d || Current prime: %d, Largest prime gap: %d - %d || Gap: %d\n", rank, a, *largestPrimeGapStart, *largestPrimeGapEnd, *largestPrimeGap);
         }
     }
 }
@@ -151,7 +156,7 @@ void collectResults(int processes)
         int primeGapStart = atoi(strtok(NULL, ","));
         int primeGapEnd = atoi(strtok(NULL, ","));
         int primeGap = atoi(strtok(NULL, ","));
-        printf("Rank: %d || Range: %d - %d || Prime gap: %d - %d || Gap: %d", i, rangeStart, rangeEnd, primeGapStart, primeGapEnd, primeGap);
+        printf("End || Rank: %d || Range: %d - %d || Prime gap: %d - %d || Gap: %d\n", i, rangeStart, rangeEnd, primeGapStart, primeGapEnd, primeGap);
 
         edgePrimeStarts[i] = rangeStart;
         edgePrimeEnds[i] = rangeEnd;
@@ -173,7 +178,7 @@ void collectResults(int processes)
             largestPrimeGapEnd = primeGapEnds[i];
         }
     }
-    printf("Largest prime gap: %d - %d || Gap: %d", largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
+    printf("End || Largest prime gap: %d - %d || Gap: %d\n", largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
 
     // Find the largest edge prime gap.
     // Ignore the first start edge prime gap.
@@ -190,7 +195,7 @@ void collectResults(int processes)
             largestEdgePrimeGapEnd = edgePrimeEnds[i + 1];
         }
     }
-    printf("Largest edge prime gap: %d - %d || Gap: %d", largestEdgePrimeGapStart, largestEdgePrimeGapEnd, largestEdgePrimeGap);
+    printf("End || Largest edge prime gap: %d - %d || Gap: %d\n", largestEdgePrimeGapStart, largestEdgePrimeGapEnd, largestEdgePrimeGap);
 
     // Compare the largest prime gap and the largest edge prime gap.
     if (largestPrimeGap > largestEdgePrimeGap)
@@ -205,7 +210,8 @@ void collectResults(int processes)
         resultStart = largestEdgePrimeGapStart;
         resultEnd = largestEdgePrimeGapEnd;
     }
-    printf("Largest gap: %d - %d || Gap: %d", resultStart, resultEnd, resultGap);
+
+    printf("End || Largest gap: %d - %d || Gap: %d\n", resultStart, resultEnd, resultGap);
 }
 
 /**

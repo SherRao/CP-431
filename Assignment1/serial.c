@@ -71,7 +71,7 @@ int main()
         {
             largest_gap = G;
 
-            
+
             G = 0;
         }
     }
