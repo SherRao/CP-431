@@ -8,7 +8,7 @@
 #define MAX_PRIME_T 1000000000000
 #define MAX_PRIME 1000000000
 #define NUMBERS_BETWEEN_UPDATES 10000000
-#define ulint long int
+#define ulint unsigned long int
 #define true 1
 #define false 0
 #define tag 1000
