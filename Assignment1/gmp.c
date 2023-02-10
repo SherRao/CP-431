@@ -3,7 +3,14 @@
 #include <mpi.h>
 #include <gmp.h>
 
-#define MAX_PRIME 100000000 // 10^8 (100 million)
+#define MAX_PRIME 1000000000 // 10^9
+
+#define ulint unsigned long
+
+typedef struct GapRank {
+	ulint gap;
+	int rank;
+} GapRank;
 
 /* Prototypes */
 void print_mpz(char tag[], mpz_t n, char end[]);
@@ -58,7 +65,7 @@ int main(int argc, char** argv) {
 	// Store largest gap and the prime associated with it & first and last primes in this process
 	mpz_t local_primegap[2]; 
 	mpz_t first_last_primes[2]; 
-	unsigned long local_primegap_ui[2];
+	GapRank gap_rank;
 	unsigned long first_last_primes_ui[2];
 
 	// Find the first prime in this process to initialize first_last_primes[]
@@ -91,7 +98,7 @@ int main(int argc, char** argv) {
 		// Calculate the gap between current and previous prime
 		mpz_sub(gap, prime, prev);
 
-		// Ff this is the largest gap, then record it and the associated prime
+		// If this is the largest gap, then record it and the associated prime
 		if (mpz_cmp(gap, local_primegap[0]) >= 0) {
 			mpz_set(local_primegap[0], gap);
 			mpz_set(local_primegap[1], prime);
@@ -112,21 +119,28 @@ int main(int argc, char** argv) {
 
 	if (rank != 0) {
 		MPI_Send(first_last_primes_ui, 2, MPI_UNSIGNED_LONG, 0, 1, MPI_COMM_WORLD);
+		ulint temp = mpz_get_ui(local_primegap[1]);
+		MPI_Send(&temp, 1, MPI_UNSIGNED_LONG, 0, 2, MPI_COMM_WORLD);
 	}
 
 	// Get the local largest gap and associated prime in the form of unsigned long
-	local_primegap_ui[0] = mpz_get_ui(local_primegap[0]);
-	local_primegap_ui[1] = mpz_get_ui(local_primegap[1]);
+	gap_rank.gap = mpz_get_ui(local_primegap[0]);
+	gap_rank.rank = rank;
 
-	// Find the max of all the local largest gaps
-	unsigned long global_primegap[2];
-	MPI_Reduce(local_primegap_ui, global_primegap, 2, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+	// Find the max of all the local largest gaps, and the rank of the process it is in
+	GapRank global_gap_rank;
+	MPI_Reduce(&gap_rank, &global_gap_rank, 1, MPI_LONG_INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
 
 	// Find the max of time taken by any thread
 	MPI_Reduce(&duration, &global_duration, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
 	// Find the gaps between first primes of a process and last primes of the preceding process
 	if (rank == 0) {
+		
+		ulint global_primegap[2];
+		global_primegap[0] = global_gap_rank.gap;
+
+		MPI_Recv(&global_primegap[1], 1, MPI_UNSIGNED_LONG, global_gap_rank.rank, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		// Declare array to store first and last primes from all processes
 		unsigned long all_first_last_primes[size*2];
 
