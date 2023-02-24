@@ -1,0 +1,126 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper]{geometry}
+\usepackage[myheadings]{fullpage}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage[font=small, labelfont=bf]{caption}
+\usepackage{fourier}
+\usepackage[protrusion=true, expansion=true]{microtype}
+\usepackage[english]{babel}
+\usepackage{sectsty}
+\usepackage{url, lipsum}
+\usepackage{tgbonum}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{textcomp}
+\usepackage{datetime}
+
+\newcommand\tab[1][1cm]{\hspace*{#1}}
+\newcommand{\HRule}[1]{\rule{\linewidth}{#1}}
+\setcounter{tocdepth}{5}
+\setcounter{secnumdepth}{5}
+
+\pagestyle{fancy}
+\fancyhf{} 
+\fancyhead[L]{Group 5}
+\fancyhead[C]{CP431 - A2}
+\fancyhead[R]{02.27.23}
+\fancyfoot[C]{\thepage}
+
+\usepackage{listings}
+\usepackage{color}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{datavisualization}
+% \pgfplotsset{compat=1.9}
+% \usepgfplotslibrary{external}
+% \tikzexternalize
+
+\lstset{frame=tb,
+  language=C,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\begin{document} {
+    % ------------- COVER PAGE -------------
+    \fontfamily{put}\selectfont
+    \title
+    { 
+        \normalsize \textsc{}
+        \\ [2.0cm]
+        \HRule{3pt} \\
+        \LARGE \textbf
+        {
+            {
+                CP431 - Parallel Programming \\
+                Assignment \#2 \\
+            }
+            \HRule{3pt} \\ [0.5cm]
+            \textbf{\LARGE{Topic: Parallel Merging of Two Sorted Arrays}}
+        }
+    }
+    
+    \author {
+    	Aidan Traboulay, Memet Rusidovski, \\
+        Mobina Tooranisama, Nausher Rao, Zamil Bahri \\ \\
+    	Group 5
+	}
+    
+    \date {
+        \textbf{\today}
+    }
+    
+    \maketitle
+    % ------------- INTRO --------------
+    \newpage
+    \section {Introduction}
+    
+    % ------------- IMPLEMENTATION --------------
+    \newpage
+    \section {Implementation}
+    % \subsection{Using GMP Library}
+    \begin{lstlisting}
+
+    \end{lstlisting}
+    
+     % ------------- BENCHMARKS --------------
+    \newpage
+    \section {Benchmarks}    
+    \begin{tikzpicture} [ybar]
+        \begin{axis}[xmin=1, xmax=8, ymin=0, ymax=1500, axis x line=middle, axis y line=middle]
+
+    \end{axis}
+    \end{tikzpicture}
+    
+    % ------------- ANALYSIS --------------
+    \newpage 
+    \section {Analysis}
+    
+    % ------------- REFERENCES --------------
+    \newpage
+    \section {References}
+    \begin{thebibliography}{5}
+    % \bibitem{MyLS} L4\_Parallel\_Benchmarking. MyLearningSpace. (n.d.). Retrieved January 30, 2023, \emph{from https://mylearningspace.wlu.ca/d2l/le/content/471549/viewContent/3194181/View}
+    
+    \end{thebibliography}
+    
+\end{document}
