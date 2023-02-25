@@ -1,7 +1,8 @@
 import numpy as np
 from mpi4py import MPI
 
-n = 1000000
+BIG_N = 11
+MAX_INT = 5 * BIG_N
 
 
 comm = MPI.COMM_WORLD
@@ -10,16 +11,20 @@ size = comm.Get_size()
 
 if rank == 0:
     # Generate to randomly sorted lists
-    a = np.random.randint(0, 5*n, size=n, dtype='i')
+    print(f"N = {BIG_N}")
+
+    a = np.random.randint(0, MAX_INT, size=BIG_N, dtype='i')
     a = np.sort(a)
-    b = np.random.randint(0, 5*n, size=n, dtype='i')
+    b = np.random.randint(0, MAX_INT, size=BIG_N, dtype='i')
     b = np.sort(b)
 
     # a = np.array([8,11,19,30,34,34,37,38,42,43,53], dtype='i')
-    # b = np.array([3,4,7,10,17,26,28,32,35,42,44], dtype='i')
+    # b = np.array([3,4,7,10,17,26,28,32,35,42,44,54], dtype='i')
 
-    # print(a)
-    # print(b)
+    # print arrays if they are small
+    if (BIG_N < 20):
+        print("A:      ", a)
+        print("B:      ", b)
 
     # Split the list into parts based on number of cores 
     a_s = np.array_split(a, size - 1)
@@ -30,23 +35,27 @@ if rank == 0:
         comm.Send([ a_s[i-1] , MPI.INT], dest=i, tag=0)
     
     # O(n) search for break points in B to create blocks
-    space = [0]
-    c = 0
-
-    for i in a_s:
-        for j in b[c:]:
-            if j > i[-1]:
-                space.append(c)
+    breaks = [0]
+    b_index = 0
+    for group in a_s:
+        for b_elem in b[b_index:]:
+            if b_elem > group[-1]:
+                breaks.append(b_index)
                 break
-            c+= 1
-    space.append(len(b))
+            b_index += 1
 
+    # Sometimes the "breaks" array does not have the same length as the size
+    if (len(breaks) < size): breaks.append(len(b))
+    else: breaks[-1] = len(b)
+    
     for i in range(1, size):
         # tag 1 is a B list block
-        comm.send(len(b[space[i-1]:space[i]]), dest=i, tag=4)
-        comm.Send([b[space[i-1]:space[i]], MPI.INT], dest=i, tag=1)
+        lower, upper = breaks[i-1], breaks[i]
+        comm.send(len(b[lower:upper]), dest=i, tag=4)
+        comm.Send([b[lower:upper], MPI.INT], dest=i, tag=1)
+        # print("sending: ", b[lower:upper], lower, upper)
 
-    # print("sent", b, space)
+    # print("sent", b, breaks)
     
     # receive merged arrays.
     merged_arrays = [None] * (size-1)
@@ -58,7 +67,9 @@ if rank == 0:
         merged_arrays[i-1] = merged
     
     merged_arrays = np.concatenate(merged_arrays, dtype = 'i')
-    # print(merged_arrays)
+    
+    
+    if (BIG_N < 20): print("Merged: ", merged_arrays)
     print("Done")
 
 
@@ -85,8 +96,10 @@ elif rank >= 1:
         merged[k] = datab[j]
         j += 1
       k += 1
-
-    merged[k:] = data[i:]
+    
+    # add the remaining elements of data or datab to k
+    if (x-i != 0): merged[k:] = data[i:]
+    else: merged[k:] = datab[j:]
 
     # print(data, " ", datab, " ", rank)
     # print(merged)
