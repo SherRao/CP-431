@@ -1,7 +1,7 @@
 import numpy as np
 from mpi4py import MPI
 
-BIG_N = 1_000_000 # The number of integers
+BIG_N = 100_000_000 # The number of integers
 MAX_INT = 10 * BIG_N # The range in which random ints are generated
 PRINT_LIMIT = 20 # Don't print arrays if size exceeds this value
 
@@ -9,6 +9,23 @@ PRINT_LIMIT = 20 # Don't print arrays if size exceeds this value
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
+
+def binary_search(arr, elem):
+    first = 0
+    last = len(arr)
+    mid = int((first + last)/2)
+    
+    while first <= last:
+        if arr[mid] == elem:
+            return mid
+        elif arr[mid] < elem:
+            first = mid + 1
+        else:
+            last = mid - 1
+
+        mid = int((first + last)/2)
+
+    return mid + 1
 
 if rank == 0:
     # Generate to randomly sorted lists
@@ -46,16 +63,22 @@ if rank == 0:
     breaks = [len(b)]*size 
     breaks[0] = 0
 
-    b_index, breaks_index = 0, 1
-    for group in a_s:
-        for b_elem in b[b_index:]:
-            if b_elem > group[-1]:
-                breaks[breaks_index] = b_index
-                breaks_index += 1
-                break
-            b_index += 1
+    # b_index, breaks_index = 0, 1
+    # for group in a_s:
+    #     for b_elem in b[b_index:]:
+    #         if b_elem > group[-1]:
+    #             breaks[breaks_index] = b_index
+    #             breaks_index += 1
+    #             break
+    #         b_index += 1
+
+    for i, group in enumerate(a_s):
+        b_index = binary_search(b, group[-1])
+        # print(f'Searching for {group[-1]} in b. Found at index {b_index}')
+        breaks[i+1] = b_index
 
     breaks[-1] = len(b)
+    # print(breaks)
     
     for i in range(1, size):
         # tag 1 is a B list block
