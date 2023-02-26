@@ -1,8 +1,9 @@
 import numpy as np
 from mpi4py import MPI
 
-BIG_N = 11
-MAX_INT = 5 * BIG_N
+BIG_N = 1000 # The number of integers
+MAX_INT = 5 * BIG_N # The range in which random ints are generated
+PRINT_LIMIT = 20 # Don't print arrays if size exceeds this value
 
 
 comm = MPI.COMM_WORLD
@@ -11,23 +12,28 @@ size = comm.Get_size()
 
 if rank == 0:
     # Generate to randomly sorted lists
-    print(f"N = {BIG_N}")
+    print(f"N = {BIG_N:,}")
 
+    sort_time_start = MPI.Wtime()
     a = np.random.randint(0, MAX_INT, size=BIG_N, dtype='i')
     a = np.sort(a)
     b = np.random.randint(0, MAX_INT, size=BIG_N, dtype='i')
     b = np.sort(b)
+    sort_time_end = MPI.Wtime()
+    print(f"Time to generate and sort arrays = {sort_time_end - sort_time_start: .4f} seconds")
 
-    # a = np.array([8,11,19,30,34,34,37,38,42,43,53], dtype='i')
-    # b = np.array([3,4,7,10,17,26,28,32,35,42,44,54], dtype='i')
+    # a = np.array([2,13,16,17,33,35,41,48,51,52,53], dtype='i')
+    # b = np.array([4,21,27,31,31,36,36,41,44,45,46,54], dtype='i')
 
     # print arrays if they are small
-    if (BIG_N < 20):
+    if (BIG_N < PRINT_LIMIT):
         print("A:      ", a)
         print("B:      ", b)
 
-    # Split the list into parts based on number of cores 
+    merge_start_time = MPI.Wtime()
+    # Split the list into parts based on number of cores
     a_s = np.array_split(a, size - 1)
+    # print(a_s)
     
     for i in range(1, size) :
         # tag 0 is an A list block
@@ -35,18 +41,20 @@ if rank == 0:
         comm.Send([ a_s[i-1] , MPI.INT], dest=i, tag=0)
     
     # O(n) search for break points in B to create blocks
-    breaks = [0]
-    b_index = 0
+    # initialize all elements to be length of b, and set first element to be 0
+    breaks = [len(b)]*size 
+    breaks[0] = 0
+
+    b_index, breaks_index = 0, 1
     for group in a_s:
         for b_elem in b[b_index:]:
             if b_elem > group[-1]:
-                breaks.append(b_index)
+                breaks[breaks_index] = b_index
+                breaks_index += 1
                 break
             b_index += 1
 
-    # Sometimes the "breaks" array does not have the same length as the size
-    if (len(breaks) < size): breaks.append(len(b))
-    else: breaks[-1] = len(b)
+    breaks[-1] = len(b)
     
     for i in range(1, size):
         # tag 1 is a B list block
@@ -67,10 +75,13 @@ if rank == 0:
         merged_arrays[i-1] = merged
     
     merged_arrays = np.concatenate(merged_arrays, dtype = 'i')
+
+    merge_end_time = MPI.Wtime()
     
     
-    if (BIG_N < 20): print("Merged: ", merged_arrays)
-    print("Done")
+    if (BIG_N < PRINT_LIMIT):
+        print("Merged: ", merged_arrays, merged_arrays.shape)
+    print(f"Time to parallel merge = {merge_end_time - merge_start_time: .4f} seconds")
 
 
 elif rank >= 1:
