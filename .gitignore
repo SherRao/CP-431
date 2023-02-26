@@ -3,6 +3,9 @@ test.c
 *DS_Store*
 *gmp-6.2.1*
 .DS_Store
+.venv
+output
+*.sh
 
 # Prerequisites
 *.d
