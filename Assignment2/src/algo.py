@@ -31,7 +31,7 @@ if rank == 0:
         print("A:      ", a)
         print("B:      ", b)
 
-    merge_start_time = MPI.Wtime()
+    # merge_start_time = MPI.Wtime()
     # Split the list into parts based on number of cores
     a_s = np.array_split(a, size - 1)
     # print(a_s)
@@ -43,17 +43,24 @@ if rank == 0:
     
     # O(n) search for break points in B to create blocks
     # initialize all elements to be length of b, and set first element to be 0
+    
+    
+
     breaks = [len(b)]*size 
     breaks[0] = 0
-
-    b_index, breaks_index = 0, 1
-    for group in a_s:
-        for b_elem in b[b_index:]:
-            if b_elem > group[-1]:
+    
+    merge_start_time = MPI.Wtime()
+    
+    b_index, breaks_index = 0, 1# SMALL OPTIMIZATION
+    for group in range(len(a_s)-1):
+        for b_elem in b[b_index:(b_index+(group))]:
+            if b_elem > a_s[group][-1]:
                 breaks[breaks_index] = b_index
                 breaks_index += 1
                 break
             b_index += 1
+
+    merge_end_time = MPI.Wtime()
 
     breaks[-1] = len(b)
     
@@ -63,6 +70,7 @@ if rank == 0:
         comm.send(len(b[lower:upper]), dest=i, tag=4)
         comm.Send([b[lower:upper], MPI.INT], dest=i, tag=1)
         # print("sending: ", b[lower:upper], lower, upper)
+        
 
     # print("sent", b, breaks)
     
@@ -77,7 +85,7 @@ if rank == 0:
     
     merged_arrays = np.concatenate(merged_arrays, dtype = 'i')
 
-    merge_end_time = MPI.Wtime()
+    # merge_end_time = MPI.Wtime()
     
     
     if (BIG_N < PRINT_LIMIT):
@@ -122,7 +130,7 @@ elif rank >= 1:
     # else: merged[k:] = datab[j:]
 
     # print(data, " ", datab, " ", rank)
-    print(len(data), "<>", len(datab), " ", rank)
+    print(len(data), "<>", len(datab), "<>", len(merged), "<>", rank)
 
     # tag 5 is length of merged array, tag 6 is the merged array
     #comm.send(merged.size, dest=0, tag=5) 
