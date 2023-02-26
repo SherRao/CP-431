@@ -13,7 +13,7 @@ size = comm.Get_size()
 
 if rank == 0:
     # Generate to randomly sorted lists
-    print(f"N = {BIG_N:,}")
+    print(f"N = {BIG_N:,} cores={size}")
 
     sort_time_start = MPI.Wtime()
     a = np.random.randint(0, MAX_INT, size=BIG_N, dtype='i')
@@ -106,7 +106,7 @@ elif rank >= 1:
     # j: int = 0
     # k: int = 0
 
-    # merged: np.ndarray = np.empty(x+y, dtype='i')
+    #merged: np.ndarray = np.empty(x+y, dtype='i')
     
     # while i < x and j < y:
     #   if data[i] < datab[j]:
@@ -122,7 +122,7 @@ elif rank >= 1:
     # else: merged[k:] = datab[j:]
 
     # print(data, " ", datab, " ", rank)
-    # print(merged)
+    print(len(data), "<>", len(datab), " ", rank)
 
     # tag 5 is length of merged array, tag 6 is the merged array
     #comm.send(merged.size, dest=0, tag=5) 

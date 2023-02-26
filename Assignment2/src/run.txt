@@ -1,0 +1,7 @@
+mpiexec -n 3 python algo.py
+
+python cythonizer.py build_ext --inplace
+
+time python test.py
+
+mpiexec -n 4 --use-hwthread-cpus python algo.py
