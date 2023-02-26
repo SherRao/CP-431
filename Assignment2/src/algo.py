@@ -2,7 +2,7 @@ import numpy as np
 from mpi4py import MPI
 import sort
 
-BIG_N = 10000000 # The number of integers
+BIG_N = 100000000 # The number of integers
 MAX_INT = 5 * BIG_N # The range in which random ints are generated
 PRINT_LIMIT = 20 # Don't print arrays if size exceeds this value
 
@@ -31,7 +31,7 @@ if rank == 0:
         print("A:      ", a)
         print("B:      ", b)
 
-    # merge_start_time = MPI.Wtime()
+    merge_start_time = MPI.Wtime()
 
     # Split the list into parts based on number of cores
     a_s = np.array_split(a, size - 1)
@@ -60,7 +60,7 @@ if rank == 0:
 
     # print("sent", b, breaks)
     
-    merge_start_time = MPI.Wtime()
+    # merge_start_time = MPI.Wtime()
     # receive merged arrays.
     merged_arrays = [None] * (size-1)
     for i in range(1,size):

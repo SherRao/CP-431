@@ -30,18 +30,29 @@ def sort(numpy.ndarray[int, ndim=1] data, numpy.ndarray[int, ndim=1] datab, int 
 @cython.boundscheck(False) # turn off bounds-checking for entire function
 cpdef list split(int size, numpy.ndarray[int, ndim=1] b, a_s):
 
-    cdef list breaks = [len(b)]*size 
+    cdef list breaks = [0]*size 
     breaks[0] = 0
 
     cdef int b_index = 0 
     cdef int breaks_index = 1
+    cdef int x = len(b)
+    cdef int com = 0
+
     for group in a_s:
-        for b_elem in b[b_index:]:
-            if b_elem > group[-1]:
+        com = group[-1]
+        while b_index < x:
+            if b[b_index] > com:
                 breaks[breaks_index] = b_index
                 breaks_index += 1
                 break
             b_index += 1
+        
+        #for b_elem in b[b_index:]:
+        #    if b_elem > group[-1]:
+        #        breaks[breaks_index] = b_index
+        #        breaks_index += 1
+        #        break
+        #    b_index += 1
 
     breaks[-1] = len(b)
 
