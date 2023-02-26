@@ -1,8 +1,8 @@
 import numpy as np
 from mpi4py import MPI
 
-BIG_N = 10000000 # The number of integers
-MAX_INT = 5 * BIG_N # The range in which random ints are generated
+BIG_N = 1_000_000 # The number of integers
+MAX_INT = 10 * BIG_N # The range in which random ints are generated
 PRINT_LIMIT = 20 # Don't print arrays if size exceeds this value
 
 
@@ -15,9 +15,9 @@ if rank == 0:
     print(f"N = {BIG_N:,}")
 
     sort_time_start = MPI.Wtime()
-    a = np.random.randint(0, MAX_INT, size=BIG_N, dtype='i')
+    a = np.random.randint(0, MAX_INT, size=BIG_N, dtype='int64')
     a = np.sort(a)
-    b = np.random.randint(0, MAX_INT, size=BIG_N, dtype='i')
+    b = np.random.randint(0, MAX_INT, size=BIG_N, dtype='int64')
     b = np.sort(b)
     sort_time_end = MPI.Wtime()
     print(f"Time to generate and sort arrays = {sort_time_end - sort_time_start: .4f} seconds")
@@ -31,6 +31,7 @@ if rank == 0:
         print("B:      ", b)
 
     merge_start_time = MPI.Wtime()
+		
     # Split the list into parts based on number of cores
     a_s = np.array_split(a, size - 1)
     # print(a_s)
@@ -70,11 +71,11 @@ if rank == 0:
     for i in range(1,size):
         # tag 5 is length of merged array, tag 6 is the merged array
         size = comm.recv(source=i, tag=5) 
-        merged = np.empty( size, dtype='i')
+        merged = np.empty( size, dtype='int64')
         comm.Recv([merged, MPI.INT], source=i, tag=6)
         merged_arrays[i-1] = merged
     
-    merged_arrays = np.concatenate(merged_arrays, dtype = 'i')
+    merged_arrays = np.concatenate(merged_arrays, dtype = 'int64')
 
     merge_end_time = MPI.Wtime()
     
@@ -87,12 +88,12 @@ if rank == 0:
 elif rank >= 1:
     # Get an A block, first size then numpy array
     x = comm.recv(source=0, tag=3)
-    data = np.empty( x , dtype='i')
+    data = np.empty( x , dtype='int64')
     comm.Recv([data, MPI.INT], source=0, tag=0)
     
     #Get a B block of arbitrary size
     y = comm.recv(source=0, tag=4)
-    datab = np.empty(y, dtype='i')
+    datab = np.empty(y, dtype='int64')
     comm.Recv([datab, MPI.INT], source=0, tag=1)
 
     # Merge data and datab
