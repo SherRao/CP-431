@@ -31,7 +31,7 @@ if rank == 0:
         print("A:      ", a)
         print("B:      ", b)
 
-    # merge_start_time = MPI.Wtime()
+    merge_start_time = MPI.Wtime()
     # Split the list into parts based on number of cores
     a_s = np.array_split(a, size - 1)
     # print(a_s)
@@ -45,24 +45,9 @@ if rank == 0:
     # initialize all elements to be length of b, and set first element to be 0
     
     
+    # merge_start_time = MPI.Wtime()
 
-    breaks = [len(b)]*size 
-    breaks[0] = 0
-    
-    merge_start_time = MPI.Wtime()
-    
-    b_index, breaks_index = 0, 1# SMALL OPTIMIZATION
-    for group in range(len(a_s)-1):
-        for b_elem in b[b_index:(b_index+(group))]:
-            if b_elem > a_s[group][-1]:
-                breaks[breaks_index] = b_index
-                breaks_index += 1
-                break
-            b_index += 1
-
-    merge_end_time = MPI.Wtime()
-
-    breaks[-1] = len(b)
+    breaks = sort.split(size, b, a_s)
     
     for i in range(1, size):
         # tag 1 is a B list block
@@ -85,7 +70,7 @@ if rank == 0:
     
     merged_arrays = np.concatenate(merged_arrays, dtype = 'i')
 
-    # merge_end_time = MPI.Wtime()
+    merge_end_time = MPI.Wtime()
     
     
     if (BIG_N < PRINT_LIMIT):
