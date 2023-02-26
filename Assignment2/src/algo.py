@@ -1,7 +1,7 @@
 import numpy as np
 from mpi4py import MPI
 
-BIG_N = 1000 # The number of integers
+BIG_N = 10000000 # The number of integers
 MAX_INT = 5 * BIG_N # The range in which random ints are generated
 PRINT_LIMIT = 20 # Don't print arrays if size exceeds this value
 
@@ -96,21 +96,24 @@ elif rank >= 1:
     comm.Recv([datab, MPI.INT], source=0, tag=1)
 
     # Merge data and datab
-    i=j=k=0
-    merged = np.empty(x+y, dtype='i')
+    merged = np.sort(np.concatenate((data,datab)), kind='merge')
+
+    # I don't wanna remove this for emotional reasons
+    # i=j=k=0
+    # merged = np.empty(x+y, dtype='i')
     
-    while i < x and j < y:
-      if data[i] < datab[j]:
-        merged[k] = data[i]
-        i += 1
-      else:
-        merged[k] = datab[j]
-        j += 1
-      k += 1
+    # while i < x and j < y:
+    #   if data[i] < datab[j]:
+    #     merged[k] = data[i]
+    #     i += 1
+    #   else:
+    #     merged[k] = datab[j]
+    #     j += 1
+    #   k += 1
     
-    # add the remaining elements of data or datab to k
-    if (x-i != 0): merged[k:] = data[i:]
-    else: merged[k:] = datab[j:]
+    # # add the remaining elements of data or datab to k
+    # if (x-i != 0): merged[k:] = data[i:]
+    # else: merged[k:] = datab[j:]
 
     # print(data, " ", datab, " ", rank)
     # print(merged)
