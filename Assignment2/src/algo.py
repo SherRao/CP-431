@@ -1,22 +1,25 @@
 import numpy as np
 from mpi4py import MPI
+import sys
 
-BIG_N = 100_000_000 # The number of integers
+BIG_N = 1_000_000_000 # The number of integers
 MAX_INT = 10 * BIG_N # The range in which random ints are generated
 PRINT_LIMIT = 20 # Don't print arrays if size exceeds this value
 
+SEED = 50 # For numpy array generation
+np.random.seed(SEED)
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-def binary_search(arr, elem):
-    first = 0
+def binary_search(arr, elem, start):
+    first = start
     last = len(arr)
     mid = int((first + last)/2)
     
     while first <= last:
-        if arr[mid] == elem:
+        if (mid == len(arr) or arr[mid] == elem):
             return mid
         elif arr[mid] < elem:
             first = mid + 1
@@ -27,20 +30,18 @@ def binary_search(arr, elem):
 
     return mid + 1
 
+def generate_sorted_randint_array(lower, upper, n, dtype):
+    return np.sort(np.random.randint(lower, upper, size=n, dtype=dtype))
+
 if rank == 0:
     # Generate to randomly sorted lists
     print(f"N = {BIG_N:,}")
 
     sort_time_start = MPI.Wtime()
-    a = np.random.randint(0, MAX_INT, size=BIG_N, dtype='int64')
-    a = np.sort(a)
-    b = np.random.randint(0, MAX_INT, size=BIG_N, dtype='int64')
-    b = np.sort(b)
+    a = generate_sorted_randint_array(0, MAX_INT, BIG_N, 'int64')
+    b = generate_sorted_randint_array(0, MAX_INT, BIG_N, 'int64')
     sort_time_end = MPI.Wtime()
     print(f"Time to generate and sort arrays = {sort_time_end - sort_time_start: .4f} seconds")
-
-    # a = np.array([2,13,16,17,33,35,41,48,51,52,53], dtype='i')
-    # b = np.array([4,21,27,31,31,36,36,41,44,45,46,54], dtype='i')
 
     # print arrays if they are small
     if (BIG_N < PRINT_LIMIT):
@@ -51,7 +52,6 @@ if rank == 0:
 		
     # Split the list into parts based on number of cores
     a_s = np.array_split(a, size - 1)
-    # print(a_s)
     
     for i in range(1, size) :
         # tag 0 is an A list block
@@ -63,31 +63,17 @@ if rank == 0:
     breaks = [len(b)]*size 
     breaks[0] = 0
 
-    # b_index, breaks_index = 0, 1
-    # for group in a_s:
-    #     for b_elem in b[b_index:]:
-    #         if b_elem > group[-1]:
-    #             breaks[breaks_index] = b_index
-    #             breaks_index += 1
-    #             break
-    #         b_index += 1
-
     for i, group in enumerate(a_s):
-        b_index = binary_search(b, group[-1])
-        # print(f'Searching for {group[-1]} in b. Found at index {b_index}')
+        b_index = binary_search(b, group[-1], breaks[i])
         breaks[i+1] = b_index
 
     breaks[-1] = len(b)
-    # print(breaks)
     
     for i in range(1, size):
         # tag 1 is a B list block
         lower, upper = breaks[i-1], breaks[i]
         comm.send(len(b[lower:upper]), dest=i, tag=4)
         comm.Send([b[lower:upper], MPI.INT], dest=i, tag=1)
-        # print("sending: ", b[lower:upper], lower, upper)
-
-    # print("sent", b, breaks)
     
     # receive merged arrays.
     merged_arrays = [None] * (size-1)
@@ -106,6 +92,11 @@ if rank == 0:
     if (BIG_N < PRINT_LIMIT):
         print("Merged: ", merged_arrays, merged_arrays.shape)
     print(f"Time to parallel merge = {merge_end_time - merge_start_time: .4f} seconds")
+    
+    print("Checking for correctness:", end=" ")
+    simple_merged = np.sort(np.concatenate((a,b)), kind='merge')
+    correct = "Correct" if ((merged_arrays==simple_merged).all()) else "Incorrect"
+    print(correct)
 
 
 elif rank >= 1:
@@ -121,27 +112,9 @@ elif rank >= 1:
 
     # Merge data and datab
     merged = np.sort(np.concatenate((data,datab)), kind='merge')
-
-    # I don't wanna remove this for emotional reasons
-    # i=j=k=0
-    # merged = np.empty(x+y, dtype='i')
-    
-    # while i < x and j < y:
-    #   if data[i] < datab[j]:
-    #     merged[k] = data[i]
-    #     i += 1
-    #   else:
-    #     merged[k] = datab[j]
-    #     j += 1
-    #   k += 1
-    
-    # # add the remaining elements of data or datab to k
-    # if (x-i != 0): merged[k:] = data[i:]
-    # else: merged[k:] = datab[j:]
-
-    # print(data, " ", datab, " ", rank)
+    # print(data)
+    # print(datab)
     # print(merged)
-
     # tag 5 is length of merged array, tag 6 is the merged array
     comm.send(merged.size, dest=0, tag=5) 
     comm.Send([merged, MPI.INT], dest=0, tag=6)
