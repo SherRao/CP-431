@@ -31,7 +31,8 @@ if rank == 0:
         print("A:      ", a)
         print("B:      ", b)
 
-    merge_start_time = MPI.Wtime()
+    # merge_start_time = MPI.Wtime()
+
     # Split the list into parts based on number of cores
     a_s = np.array_split(a, size - 1)
     # print(a_s)
@@ -59,6 +60,7 @@ if rank == 0:
 
     # print("sent", b, breaks)
     
+    merge_start_time = MPI.Wtime()
     # receive merged arrays.
     merged_arrays = [None] * (size-1)
     for i in range(1,size):

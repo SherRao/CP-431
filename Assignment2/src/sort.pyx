@@ -33,7 +33,8 @@ cpdef list split(int size, numpy.ndarray[int, ndim=1] b, a_s):
     cdef list breaks = [len(b)]*size 
     breaks[0] = 0
 
-    b_index, breaks_index = 0, 1
+    cdef int b_index = 0 
+    cdef int breaks_index = 1
     for group in a_s:
         for b_elem in b[b_index:]:
             if b_elem > group[-1]:
