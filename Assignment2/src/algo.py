@@ -1,5 +1,6 @@
 import numpy as np
 from mpi4py import MPI
+import sort
 
 BIG_N = 10000000 # The number of integers
 MAX_INT = 5 * BIG_N # The range in which random ints are generated
@@ -86,21 +87,26 @@ if rank == 0:
 
 elif rank >= 1:
     # Get an A block, first size then numpy array
-    x = comm.recv(source=0, tag=3)
+    x: int = comm.recv(source=0, tag=3)
     data = np.empty( x , dtype='i')
     comm.Recv([data, MPI.INT], source=0, tag=0)
     
     #Get a B block of arbitrary size
-    y = comm.recv(source=0, tag=4)
+    y:int = comm.recv(source=0, tag=4)
     datab = np.empty(y, dtype='i')
     comm.Recv([datab, MPI.INT], source=0, tag=1)
 
     # Merge data and datab
-    merged = np.sort(np.concatenate((data,datab)), kind='merge')
-
+    #merged = np.sort(np.concatenate((data, datab)))
+    
+    
+    merged = sort.sort(data, datab, x, y)
     # I don't wanna remove this for emotional reasons
-    # i=j=k=0
-    # merged = np.empty(x+y, dtype='i')
+    # i: int = 0
+    # j: int = 0
+    # k: int = 0
+
+    # merged: np.ndarray = np.empty(x+y, dtype='i')
     
     # while i < x and j < y:
     #   if data[i] < datab[j]:
@@ -111,7 +117,7 @@ elif rank >= 1:
     #     j += 1
     #   k += 1
     
-    # # add the remaining elements of data or datab to k
+    # # # add the remaining elements of data or datab to k
     # if (x-i != 0): merged[k:] = data[i:]
     # else: merged[k:] = datab[j:]
 
@@ -119,7 +125,8 @@ elif rank >= 1:
     # print(merged)
 
     # tag 5 is length of merged array, tag 6 is the merged array
-    comm.send(merged.size, dest=0, tag=5) 
+    #comm.send(merged.size, dest=0, tag=5) 
+    comm.send(len(merged), dest=0, tag=5)
     comm.Send([merged, MPI.INT], dest=0, tag=6)
 
 
