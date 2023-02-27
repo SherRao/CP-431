@@ -5,10 +5,11 @@ import time
 from mpi4py import MPI
 from typing import Tuple
 
-BIG_N = 100_000_00                          # The number of integers
+BIG_N = 1_000_000                           # The number of integers
 MAX_INT = min(2_147_000_000, 10 * BIG_N)    # The range in which random ints are generated
 PRINT_ARRAY_LIMIT = 20                      # Don't print arrays if size exceeds this value
 SHOULD_CHECK_CORRECTNESS = False            # Check if the merged array is sorted - quite slow for large values of N
+SEED = 50                                   # So that same arrays are generated each run for consistent tests 
 
 
 def generate_sorted_int_array(lower: int, upper: int, n: int, data_type: str ='i') -> np.ndarray:
@@ -55,6 +56,7 @@ def binary_search(arr: np.ndarray, elem: any, start: int) -> int:
 
     Returns:
         The index of the element if it is found, or the index of the first
+                value greater than it.
     """
     first = start
     last = len(arr)
@@ -120,7 +122,7 @@ def root_process(comm: any, rank: int, size: int) -> None:
         gen_arr_time_end = MPI.Wtime()
 
         print(f"Time to generate and sort arrays = {gen_arr_time_end - gen_arr_time_start: .4f} seconds.\n")
-        print(f"The two generated arrays are of length {BIG_N}.")
+        print(f"The two generated arrays are of length {BIG_N: ,}.")
         if(BIG_N < PRINT_ARRAY_LIMIT):
             print("The two arrays are:")
             print(f"A: {a}")
@@ -131,7 +133,7 @@ def root_process(comm: any, rank: int, size: int) -> None:
 
         return a, b
 
-    def parallel_merge(a, b) -> np.ndarray:
+    def parallel_merge(a: np.ndarray, b: np.ndarray, size: int) -> np.ndarray:
         """
         Description:
             Performs a parallel merge of the two arrays.
@@ -139,20 +141,21 @@ def root_process(comm: any, rank: int, size: int) -> None:
         Parameters:
             a: The first sorted array.
             b: The second sorted array.
+            size: The number of processors
 
         Returns:
             A sorted array containing all elements of a and b.
         """
         merge_start_time = MPI.Wtime()
 
-        # Split the list into parts based on number of cores
+        # Split the list into parts based on number of processors
         a_s = np.array_split(a, size - 1)
         for i in range(1, size):
             # tag 0 is an A list block
             comm.send(len(a_s[i-1]), dest=i, tag=3)
             comm.Send([a_s[i-1], MPI.INT], dest=i, tag=0)
 
-        # O(n) search for break points in B to create blocks
+        # O(log n) search for break points in B to create blocks
         breaks = [0] * size
         for i, group in enumerate(a_s):
             b_index = sort.binary_search(b, group[-1], breaks[i])
@@ -170,9 +173,9 @@ def root_process(comm: any, rank: int, size: int) -> None:
         for i in range(1, size):
             # tag 5 is length of merged array, tag 6 is the merged array
             size = comm.recv(source=i, tag=5)
-            merged = np.empty(size, dtype='i')
-            comm.Recv([merged, MPI.INT], source=i, tag=6)
-            merged[i-1] = merged
+            local_merged = np.empty(size, dtype='i')
+            comm.Recv([local_merged, MPI.INT], source=i, tag=6)
+            merged[i-1] = local_merged
 
         merged = np.concatenate(merged, dtype='i')
         merge_end_time = MPI.Wtime()
@@ -184,8 +187,9 @@ def root_process(comm: any, rank: int, size: int) -> None:
 
         return merged
 
+    print(f"Number of processors: {size}")
     a, b = array_generation()
-    merged = parallel_merge(a, b)
+    merged = parallel_merge(a, b, size)
     if(SHOULD_CHECK_CORRECTNESS):
         check_correctness(a, b, merged)
 
@@ -216,7 +220,7 @@ def non_root_process(comm: any, rank: int, size: int) -> None:
     merged = sort.sort(data, datab, x, y)
     t = MPI.Wtime()
 
-    print("<>", t - r)
+    print(f"Rank {rank} took{t - r: .4} seconds to merge locally")
     # tag 5 is length of merged array, tag 6 is the merged array
     comm.send(merged.size, dest=0, tag=5)
     comm.Send([merged, MPI.INT], dest=0, tag=6)
@@ -231,7 +235,8 @@ def main():
     Parameters:
         None
     """
-    np.random.seed(round(time.time() * 1000))
+    # np.random.seed(round(time.time() * 1000))
+    np.random.seed(SEED) # Used this for consistent testing
 
     # Basic setup for MPI stuff.
     comm = MPI.COMM_WORLD
