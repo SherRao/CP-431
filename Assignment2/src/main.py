@@ -7,7 +7,7 @@ from typing import Tuple
 
 BIG_N = 100_000_00                          # The number of integers
 MAX_INT = min(2_147_000_000, 10 * BIG_N)    # The range in which random ints are generated
-PRINT_LIMIT = 20                            # Don't print arrays if size exceeds this value
+PRINT_ARRAY_LIMIT = 20                      # Don't print arrays if size exceeds this value
 SHOULD_CHECK_CORRECTNESS = False            # Check if the merged array is sorted - quite slow for large values of N
 
 
@@ -122,7 +122,7 @@ def root_process(comm: any, rank: int, size: int) -> None:
         print(f"The elements per array has been set to N = {BIG_N:,}.")
         print(f"Time to generate and sort arrays = {gen_arr_time_end - gen_arr_time_start: .4f} seconds.\n")
         print(f"The two generated arrays are of length {BIG_N}.")
-        if(BIG_N < PRINT_LIMIT):
+        if(BIG_N < PRINT_ARRAY_LIMIT):
             print("The two arrays are:")
             print(f"A: {a}")
             print(f"B: {b}")
@@ -180,7 +180,7 @@ def root_process(comm: any, rank: int, size: int) -> None:
 
         print(f'Size of merged array: {sys.getsizeof(marged) / 1_000_000: ,.2f} MB')
         print(f"Time to parallel merge = {merge_end_time - merge_start_time: .4f} seconds")
-        if(BIG_N < PRINT_LIMIT):
+        if(BIG_N < PRINT_ARRAY_LIMIT):
             print(f"Merged: {marged}")
 
         return merged
