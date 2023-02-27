@@ -119,7 +119,6 @@ def root_process(comm: any, rank: int, size: int) -> None:
         b = generate_sorted_int_array(0, MAX_INT, BIG_N)
         gen_arr_time_end = MPI.Wtime()
 
-        print(f"The elements per array has been set to N = {BIG_N:,}.")
         print(f"Time to generate and sort arrays = {gen_arr_time_end - gen_arr_time_start: .4f} seconds.\n")
         print(f"The two generated arrays are of length {BIG_N}.")
         if(BIG_N < PRINT_ARRAY_LIMIT):
@@ -167,21 +166,21 @@ def root_process(comm: any, rank: int, size: int) -> None:
             comm.send(len(b[lower:upper]), dest=i, tag=4)
             comm.Send([b[lower:upper], MPI.INT], dest=i, tag=1)
 
-        marged = [None] * (size - 1)
+        merged = [None] * (size - 1)
         for i in range(1, size):
             # tag 5 is length of merged array, tag 6 is the merged array
             size = comm.recv(source=i, tag=5)
             merged = np.empty(size, dtype='i')
             comm.Recv([merged, MPI.INT], source=i, tag=6)
-            marged[i-1] = merged
+            merged[i-1] = merged
 
-        marged = np.concatenate(marged, dtype='i')
+        merged = np.concatenate(merged, dtype='i')
         merge_end_time = MPI.Wtime()
 
-        print(f'Size of merged array: {sys.getsizeof(marged) / 1_000_000: ,.2f} MB')
+        print(f'Size of merged array: {sys.getsizeof(merged) / 1_000_000: ,.2f} MB')
         print(f"Time to parallel merge = {merge_end_time - merge_start_time: .4f} seconds")
         if(BIG_N < PRINT_ARRAY_LIMIT):
-            print(f"Merged: {marged}")
+            print(f"Merged: {merged}")
 
         return merged
 
@@ -246,3 +245,6 @@ def main():
         non_root_process(comm, rank, size)
 
     return
+
+if(__name__ == "__main__"):
+    main()
