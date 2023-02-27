@@ -1,6 +1,7 @@
 import numpy as np
 from mpi4py import MPI
 import sys, gc
+import sort
 
 BIG_N = 100_000_000 # The number of integers
 MAX_INT = 10 * BIG_N # The range in which random ints are generated
@@ -42,8 +43,8 @@ if rank == 0:
     print(f"N = {BIG_N:,}")
 
     sort_time_start = MPI.Wtime()
-    a = generate_sorted_randint_array(0, MAX_INT, BIG_N, 'int64')
-    b = generate_sorted_randint_array(0, MAX_INT, BIG_N, 'int64')
+    a = generate_sorted_randint_array(0, MAX_INT, BIG_N, 'i')
+    b = generate_sorted_randint_array(0, MAX_INT, BIG_N, 'i')
     sort_time_end = MPI.Wtime()
     print(f"Time to generate and sort arrays = {sort_time_end - sort_time_start: .4f} seconds")
 
@@ -67,12 +68,14 @@ if rank == 0:
     breaks = [0]*size 
 
     for i, group in enumerate(a_s):
-        b_index = binary_search(b, group[-1], breaks[i])
+        #b_index = binary_search(b, group[-1], breaks[i])
+        b_index = sort.binary_search(b, group[-1], breaks[i])
         breaks[i+1] = b_index
 
     # Set last element to be the length of the array
     breaks[-1] = len(b)
-    
+    #breaks = sort.split(size, b, a_s)
+
     for i in range(1, size):
         # tag 1 is a B list block
         lower, upper = breaks[i-1], breaks[i]
@@ -91,12 +94,12 @@ if rank == 0:
     for i in range(1,size):
         # tag 5 is length of merged array, tag 6 is the merged array
         size = comm.recv(source=i, tag=5) 
-        merged = np.empty( size, dtype='int64')
+        merged = np.empty( size, dtype='i')
         comm.Recv([merged, MPI.INT], source=i, tag=6)
         merged_arrays[i-1] = merged
     
     # concatenate all merged arrays into one
-    merged_arrays = np.concatenate(merged_arrays, dtype = 'int64')
+    merged_arrays = np.concatenate(merged_arrays, dtype = 'i')
     print(f'Size of merged array: {sys.getsizeof(merged_arrays)/1_000_000: ,.2f} MB')
 
     # end merge timer
@@ -116,17 +119,18 @@ if rank == 0:
 
 elif rank >= 1:
     # Get an A block, first size then numpy array
-    x = comm.recv(source=0, tag=3)
-    data = np.empty( x , dtype='int64')
+    x: int = comm.recv(source=0, tag=3)
+    data = np.empty( x , dtype='i')
     comm.Recv([data, MPI.INT], source=0, tag=0)
     
     #Get a B block of arbitrary size
-    y = comm.recv(source=0, tag=4)
-    datab = np.empty(y, dtype='int64')
+    y: int = comm.recv(source=0, tag=4)
+    datab = np.empty(y, dtype='i')
     comm.Recv([datab, MPI.INT], source=0, tag=1)
 
     # Merge data and datab
-    merged = simple_merge(data, datab)
+    #merged = simple_merge(data, datab)
+    merged = sort.sort(data, datab, x, y)
 
     # tag 5 is length of merged array, tag 6 is the merged array
     comm.send(merged.size, dest=0, tag=5) 
