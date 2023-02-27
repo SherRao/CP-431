@@ -26,8 +26,8 @@
 \pagestyle{fancy}
 \fancyhf{} 
 \fancyhead[L]{Group 5}
-\fancyhead[C]{CP431 - A2}
-\fancyhead[R]{02.27.23}
+\fancyhead[C]{CP431 - A1}
+\fancyhead[R]{01.30.23}
 \fancyfoot[C]{\thepage}
 
 \usepackage{listings}
@@ -72,10 +72,10 @@
         {
             {
                 CP431 - Parallel Programming \\
-                Assignment \#2 \\
+                Assignment \#1 \\
             }
             \HRule{3pt} \\ [0.5cm]
-            \textbf{\LARGE{Topic: Parallel Merging of Two Sorted Arrays}}
+            \textbf{\LARGE{Topic: MPI Programming For Gaps Between Prime Numbers}}
         }
     }
     
@@ -93,33 +93,617 @@
     % ------------- INTRO --------------
     \newpage
     \section {Introduction}
-    This report presents a comprehensive evaluation of the performance and runtime of a parallel merge sort algorithm to sort two arrays efficiently, on large, randomly generated arrays of numbers. There are multiple approaches to carry out this operation, the one outlined in this report is 
+    This report presents a comprehensive evaluation of the performance and runtime of three (3) parallel implementations of a program that calculates prime gaps up to a trillion $(10^{12})$. The prime gap is defined as the difference between two consecutive prime numbers and plays a crucial role in several mathematical and computational problems. The report focuses on the comparison of the runtime and scalability of the three implementations and provides insights into their strengths and weaknesses through benchmarking. Additionally, the report highlights the challenges faced during the parallelization process and discusses potential solutions for improving the performance of the program. 
+    
     % ------------- IMPLEMENTATION --------------
     \newpage
     \section {Implementation}
-    % \subsection{Using GMP Library}
+    \subsection{Using GMP Library}
     \begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
+#include <gmp.h>
+#include <math.h>
+#include <assert.h>
 
+#define MAX(A, B) (A > B ? A : B)
+#define MIN(A, B) (A < B ? A : B)
+#define MAX_PRIME 100000000 // 10^8 (100 million)
+
+/* Prototypes */
+void print_mpz(char tag[], mpz_t n, char end[]);
+
+/* Print Function */
+void print_mpz(char tag[], mpz_t n, char end[]) {
+	printf("%s = ", tag);
+	mpz_out_str(stdout, 10, n);
+	printf("%s", end);
+}
+
+/* Main Function */
+int main(int argc, char** argv) {
+	// Initialize the MPI environment
+	int rank, size;
+
+	// Initialize mpz_t variables
+	mpz_t N;
+	int flag_N;
+	mpz_init(N);
+	mpz_set_ui(N,MAX_PRIME);
+
+	// Declare timer variables
+	double first_time, second_time, duration, global_duration;
+
+	// Declare prime variables
+	int flag;
+	mpz_t start, end, gap, prime, prev, load;
+
+	// Initialize above mpz_t variables and set initial values
+	mpz_init(start);
+	mpz_init(end);
+	mpz_init(gap);
+	mpz_init(prime);
+	mpz_init(prev);
+	mpz_init(load);
+
+	mpz_set_ui(start,0);
+	mpz_set_ui(end,0);
+	mpz_set_ui(gap,0);
+	mpz_set_ui(prime,2);
+	mpz_set_ui(prev,2);
+	mpz_set_ui(load,0);
+
+	MPI_Init(&argc, &argv);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	// Declare the start and end values of process
+	mpz_div_ui(load, N, size);
+	mpz_mul_ui(start, load, rank);
+	mpz_add(end, start, load);
+
+	// Store largest gap and the prime associated with it & first and last primes in this process
+	mpz_t local_primegap[2]; 
+	mpz_t first_last_primes[2]; 
+	unsigned long local_primegap_ui[2];
+	unsigned long first_last_primes_ui[2];
+
+	// Find the first prime in this process to initialize first_last_primes[]
+	mpz_nextprime(prime, start);
+	mpz_set(prev, prime);
+
+	// mpz_init() above arrays
+	for (int i = 0; i < 2; ++i) {
+		mpz_init(local_primegap[i]);
+		mpz_init(first_last_primes[i]);
+	}
+
+	mpz_set(local_primegap[0], gap);
+	mpz_set(local_primegap[1], prime);
+
+	mpz_set(first_last_primes[0], prime);
+
+	// Start timer
+	first_time = MPI_Wtime();
+
+	while (1) {
+		mpz_nextprime(prime, prime);
+
+		// Break loop if prime > end. Record the last prime encountered
+		if (mpz_cmp(prime, end) > 0) {
+			mpz_set(first_last_primes[1], prev);
+			break;
+		}
+
+		// Calculate the gap between current and previous prime
+		mpz_sub(gap, prime, prev);
+
+		// Ff this is the largest gap, then record it and the associated prime
+		if (mpz_cmp(gap, local_primegap[0]) >= 0) {
+			mpz_set(local_primegap[0], gap);
+			mpz_set(local_primegap[1], prime);
+		}
+
+		// Update previous prime to currrent prime
+		mpz_set(prev, prime);
+	}
+
+	// End timer
+	second_time = MPI_Wtime();
+	duration = second_time - first_time;
+	printf("rank = %d, local duration = %lf\n", rank, duration);
+
+	// Send first and last primes to root thread
+	first_last_primes_ui[0] = mpz_get_ui(first_last_primes[0]);
+	first_last_primes_ui[1] = mpz_get_ui(first_last_primes[1]);
+
+	if (rank != 0) {
+		MPI_Send(first_last_primes_ui, 2, MPI_UNSIGNED_LONG, 0, 1, MPI_COMM_WORLD);
+	}
+
+	// Get the local largest gap and associated prime in the form of unsigned long
+	local_primegap_ui[0] = mpz_get_ui(local_primegap[0]);
+	local_primegap_ui[1] = mpz_get_ui(local_primegap[1]);
+
+	// Find the max of all the local largest gaps
+	unsigned long global_primegap[2];
+	MPI_Reduce(local_primegap_ui, global_primegap, 2, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
+
+	// Find the max of time taken by any thread
+	MPI_Reduce(&duration, &global_duration, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+	// Find the gaps between first primes of a process and last primes of the preceding process
+	if (rank == 0) {
+		// Declare array to store first and last primes from all processes
+		unsigned long all_first_last_primes[size*2];
+
+		// Store the first and last primes from root process
+		all_first_last_primes[0] = first_last_primes_ui[0];
+		all_first_last_primes[1] = first_last_primes_ui[1];
+
+		// Receive first and last primes from other processes and store them
+		MPI_Status status;
+		for (int i = 1; i < size; ++i) {
+			MPI_Recv(first_last_primes_ui, 2, MPI_UNSIGNED_LONG, i, 1, MPI_COMM_WORLD, &status);
+			all_first_last_primes[i*2] = first_last_primes_ui[0];
+			all_first_last_primes[i*2+1] = first_last_primes_ui[1];
+		}
+
+		// Find the difference between consecutive elements (ignore first and last elements).
+		// If diff > largest gap, then recognize it
+		unsigned long diff;
+		for (int i = 2; i < size*2-1; i+=2) {
+			diff =  all_first_last_primes[i] - all_first_last_primes[i-1];
+			if (diff > global_primegap[0]) {
+				global_primegap[0] = diff;
+				global_primegap[1] = all_first_last_primes[i];
+			}
+		}
+
+		// Output the largest gap and the associated prime
+		printf("max gap = %lu, between %lu and %lu\n", global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
+		printf("global runtime is %f\n", global_duration);
+	}
+
+	// End MPI Program
+	MPI_Finalize();
+
+	return 0;
+}
+    \end{lstlisting}
+    \subsection{Without GMP Library}
+    \begin{lstlisting}
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <time.h>
+#include "mpi.h"
+
+#define MAX_PRIME_T 1000000000000
+#define MAX_PRIME 1000000000
+#define NUMBERS_BETWEEN_UPDATES 10000000
+#define ulint unsigned long int
+#define true 1
+#define false 0
+#define tag 1000
+
+void mainProcess(int);
+void childProcess(int, int);
+void calculateLargestPrimeDiff(int, int, ulint *, ulint *, ulint *, ulint *, ulint *);
+void collectResults(int);
+ulint getNextPrime(ulint);
+ulint isPrime(ulint);
+
+/**
+ *
+ * Main entry function. Loads up MPI with the number of processes and the rank of the
+ * current process, and calls functions accordingly.
+ *
+ */
+int main(int argc, char **argv)
+{
+    int processes;
+    int rank;
+    if (MPI_Init(&argc, &argv) != MPI_SUCCESS)
+    {
+        printf("MPI_Init failed!\n");
+        exit(0);
+    }
+
+    MPI_Comm_size(MPI_COMM_WORLD, &processes);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    if (rank == 0)
+        mainProcess(processes);
+
+    else
+        childProcess(rank, processes);
+
+    MPI_Finalize();
+}
+
+/**
+ *
+ * Function ran by the main process.
+ *
+ */
+void mainProcess(int processes)
+{
+    time_t startTime = time(NULL);
+    collectResults(processes);
+    time_t endTime = time(NULL);
+    printf("End || Time taken: %lu seconds\n", endTime - startTime);
+}
+
+/**
+ *
+ * Function ran by child processes.
+ *
+ */
+void childProcess(int rank, int processes)
+{
+    ulint smallestPrime;
+    ulint largestPrime;
+    ulint largestPrimeGapStart;
+    ulint largestPrimeGapEnd;
+    ulint largestPrimeGap;
+    calculateLargestPrimeDiff(rank, processes, &smallestPrime, &largestPrime, &largestPrimeGapStart, &largestPrimeGapEnd, &largestPrimeGap);
+
+    char message[1000];
+    sprintf(message, "%lu,%lu,%lu,%lu,%lu", smallestPrime, largestPrime, largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
+    MPI_Send(message, 100, MPI_CHAR, 0, tag, MPI_COMM_WORLD);
+}
+
+/**
+ * Calculates the largest prime gap in the range of numbers by a specific process.
+ *
+ * @param rank The rank/ID of the process.
+ * @param processes The number of total processes.
+ * @param smallestPrime The smallest prime in the range.
+ * @param largestPrime The largest prime in the range.
+ * @param largestPrimeGapStart The start of the largest prime gap.
+ * @param largestPrimeGapEnd The end of the largest prime gap.
+ * @param largestPrimeGap The largest prime gap.
+ *
+ */
+void calculateLargestPrimeDiff(int rank, int processes, ulint *smallestPrime, ulint *largestPrime,
+                               ulint *largestPrimeGapStart, ulint *largestPrimeGapEnd, ulint *largestPrimeGap)
+{
+    ulint divisions = MAX_PRIME / processes;
+    ulint rangeStart = (rank - 1) * divisions;
+    ulint rangeEnd = rank * divisions;
+    printf("Starting || Rank: %d || Divisions: %d || Range: %d - %d\n", rank, divisions, rangeStart, rangeEnd);
+
+    ulint primeGapStart = -1;
+    ulint primeGapEnd = -1;
+    ulint primeGap = -1;
+
+    ulint a = getNextPrime(rangeStart);
+    ulint b = getNextPrime(a);
+    ulint lastPrimeUpdate = a;
+    while (b < rangeEnd)
+    {
+        *largestPrime = b;
+        int gap = b - a;
+
+        if (gap > primeGap)
+        {
+            *largestPrimeGapStart = a;
+            *largestPrimeGapEnd = b;
+            *largestPrimeGap = gap;
+        }
+
+        a = b;
+        b = getNextPrime(b);
+        if (a - lastPrimeUpdate >= NUMBERS_BETWEEN_UPDATES)
+        {
+            lastPrimeUpdate = a;
+            printf("Update || Rank: %d || Current prime: %d, Largest prime gap: %d - %d || Gap: %d\n", rank, a, *largestPrimeGapStart, *largestPrimeGapEnd, *largestPrimeGap);
+        }
+    }
+}
+
+/**
+ *
+ * Collects the results from the child processes and prints the largest prime gap.
+ *
+ */
+void collectResults(int processes)
+{
+    int resultStart;
+    int resultEnd;
+    int resultGap;
+
+    int *edgePrimeStarts = malloc(sizeof(int) * processes);
+    int *edgePrimeEnds = malloc(sizeof(int) * processes);
+    int *primeGapStarts = malloc(sizeof(int) * processes);
+    int *primeGapEnds = malloc(sizeof(int) * processes);
+    int *primeGaps = malloc(sizeof(int) * processes);
+
+    char message[1000];
+
+    // Receive messages from child processes and store the data.
+    for (int i = 1; i < processes; i++)
+    {
+        MPI_Recv(message, 100, MPI_CHAR, i, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        ulint rangeStart = atoi(strtok(message, ","));
+        ulint rangeEnd = atoi(strtok(NULL, ","));
+        ulint primeGapStart = atoi(strtok(NULL, ","));
+        ulint primeGapEnd = atoi(strtok(NULL, ","));
+        ulint primeGap = atoi(strtok(NULL, ","));
+        printf("End || Rank: %d || Range: %d - %d || Prime gap: %d - %d || Gap: %d\n", i, rangeStart, rangeEnd, primeGapStart, primeGapEnd, primeGap);
+
+        edgePrimeStarts[i] = rangeStart;
+        edgePrimeEnds[i] = rangeEnd;
+        primeGapStarts[i] = primeGapStart;
+        primeGapEnds[i] = primeGapEnd;
+        primeGaps[i] = primeGap;
+    }
+
+    // Find the largest prime gap.
+    ulint largestPrimeGap = -1;
+    ulint largestPrimeGapStart = -1;
+    ulint largestPrimeGapEnd = -1;
+    for (int i = 1; i < processes; i++)
+    {
+        if (primeGaps[i] > largestPrimeGap)
+        {
+            largestPrimeGap = primeGaps[i];
+            largestPrimeGapStart = primeGapStarts[i];
+            largestPrimeGapEnd = primeGapEnds[i];
+        }
+    }
+    printf("End || Largest prime gap: %d - %d || Gap: %d\n", largestPrimeGapStart, largestPrimeGapEnd, largestPrimeGap);
+
+    // Find the largest edge prime gap.
+    // Ignore the first start edge prime gap.
+    ulint largestEdgePrimeGap = -1;
+    ulint largestEdgePrimeGapStart = -1;
+    ulint largestEdgePrimeGapEnd = -1;
+    for (int i = 0; i < processes - 1; i++)
+    {
+        ulint gap = edgePrimeEnds[i] - edgePrimeStarts[i + 1];
+        if (gap > largestEdgePrimeGap)
+        {
+            largestEdgePrimeGap = gap;
+            largestEdgePrimeGapStart = edgePrimeStarts[i];
+            largestEdgePrimeGapEnd = edgePrimeEnds[i + 1];
+        }
+    }
+    printf("End || Largest edge prime gap: %d - %d || Gap: %d\n", largestEdgePrimeGapStart, largestEdgePrimeGapEnd, largestEdgePrimeGap);
+
+    // Compare the largest prime gap and the largest edge prime gap.
+    if (largestPrimeGap > largestEdgePrimeGap)
+    {
+        resultGap = largestPrimeGap;
+        resultStart = largestPrimeGapStart;
+        resultEnd = largestPrimeGapEnd;
+    }
+    else
+    {
+        resultGap = largestEdgePrimeGap;
+        resultStart = largestEdgePrimeGapStart;
+        resultEnd = largestEdgePrimeGapEnd;
+    }
+
+    printf("End || Largest gap: %d - %d || Gap: %d\n", resultStart, resultEnd, resultGap);
+}
+
+/**
+ *
+ * Calculates the next prime number.
+ *
+ * @param x The number to start from.
+ * @return The next prime number.
+ *
+ */
+ulint getNextPrime(ulint x)
+{
+    ulint i = x + 1;
+    while (!isPrime(i))
+        i++;
+
+    return i;
+}
+
+/**
+ *
+ * Checks if a number is prime.
+ *
+ * @param x The number to check.
+ * @return True if the number is prime, false otherwise.
+ *
+ */
+ulint isPrime(ulint x)
+{
+    if (x == 2)
+        return true;
+
+    if (x == 1 || x % 2 == 0)
+        return false;
+
+    ulint i = 2;
+    while (i * i < x)
+    {
+        if (x % i == 0)
+            return false;
+
+        i++;
+    }
+    return true;
+}
+    \end{lstlisting}
+
+    \subsection{Serial Version (Non-Parallel)}
+    \begin{lstlisting}
+#include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
+#include <math.h>
+#include <mpi.h>
+#include <stdlib.h>
+
+int segmentedSieve(int n, int first_primes[], int count, int start);
+
+int SieveOfEratosthenes(int n, int lst[])
+{
+    float sqt = sqrt(n);
+    int flr = floor(sqt) + 1;
+
+    bool prime[flr + 1];
+    memset(prime, true, sizeof(prime));
+
+    int x = 0;
+    int c = 0;
+
+    for (int p = 2; p * p <= flr; p++)
+    {
+        if (prime[p] == true)
+        {
+            for (int i = p * p; i <= flr; i += p) {
+                prime[i] = false;
+            }
+        }
+        x++;
+    }
+
+    for (int p = 2; p <= flr; p++)
+        if (prime[p]) {
+            lst[c] = p;
+            c++;
+        }
+
+    return c;
+}
+
+int main()
+{
+    int n = 100000000;
+    int largest_gap = 0;
+    int G = 0;
+
+    float sqt = sqrt(n);
+    int flr = floor(sqt) + 1;
+    
+    printf("This is the biggest gap from one to %d \n", n);
+    int x[flr+1];
+
+    memset(x, 0, sizeof x);
+
+    int count = SieveOfEratosthenes(n, x);
+
+    int block_size = 10000;
+    for (int i = block_size; i < n; i += block_size){
+    if (i > n == false)
+        G = segmentedSieve(block_size + i - 1, x, count, i);
+
+        if (G > largest_gap)
+        {
+            largest_gap = G;
+            G = 0;
+        }
+    }
+    printf("%d", largest_gap);
+
+    return 0;
+}
+
+int segmentedSieve(int n, int first_primes[], int count, int start)
+{
+    float sqt = sqrt(n);
+    int flr = floor(sqt) + 1;
+
+    int limit = start;
+
+    int gap = 0;
+    int max_gap = 0;
+    // a block of the primes all set to true ex [100..200]
+    bool block[n - start + 1];//limit + 1];
+    memset(block, true, sizeof(block));
+
+    int low = limit;
+    int high = 2 * limit;
+    int c = 0;
+
+    while (low < n)
+    {
+        if (high >= n)
+            high = n;
+        c++;
+
+        for (int i = 0; i < count; i++)
+        {
+            float temp = ((float)low) / ((float)first_primes[i]);
+            int lowest_lim = floor(temp) * first_primes[i];
+
+            if (lowest_lim < low)
+            lowest_lim += first_primes[i];
+
+            for (int j = lowest_lim; j < high; j += first_primes[i])
+            block[j - low] = false;
+        }
+
+        for (int i = low; i < high; i++)
+        {
+            if (block[i - low] == true){
+                if (max_gap < gap)
+                    max_gap = gap;
+                    gap = 0;
+            }
+            gap++;
+        }
+
+        low = low + limit;
+        high = high + limit;
+    }
+
+    return max_gap;
+}
     \end{lstlisting}
     
      % ------------- BENCHMARKS --------------
     \newpage
     \section {Benchmarks}    
+    \subsection{Using GMP Library}
     \begin{tikzpicture} [ybar]
         \begin{axis}[xmin=1, xmax=8, ymin=0, ymax=1500, axis x line=middle, axis y line=middle]
 
     \end{axis}
     \end{tikzpicture}
+
+    \subsection{Without GMP Library}
+    \begin{tikzpicture}
+        \begin{axis}[xmin=1, xmax=8, ymin=0, ymax=1500, axis x line=middle, axis y line=middle]
+
+    \end{axis}
+    \end{tikzpicture}
+    \subsection{Serial Version}
+    \begin{tikzpicture}
+        \begin{axis}[xmin=2, xmax=8, ymin=0, ymax=30, axis x line=middle, axis y line=middle]
+
+
+        \end{axis}
+    \end{tikzpicture}
     
     % ------------- ANALYSIS --------------
     \newpage 
     \section {Analysis}
+    Using the three (3) different versions of the program it has been derived that the largest prime gap up to a trillion unsigned integers is 540, between 738,832,927,927 and 738,832,928,467; this had a run time of roughly 35 minutes. Multiple tests of the program varied with time, usually within the range of 1920 to 2200 seconds. Thus, we used the approximate  time of 35 minutes or 2100 seconds. In contrast, the non-parallel version of the program was able to complete and ensure the prime gap found was correct, however, the run  time was about an hour or 1 hour and 3 minutes to be precise. \\
+    Thus concluding, based on the showcased benchmarks, it has been determined that the fastest version of the program is the one that uses the GNU MP Bignum Library. This is most likely due to the fact that GMP contains many optimisations for common mathematical functions. For example, a Look-up Table (LUT) is implemented across common mathematical functions in GMP, decreasing the computational time. As well as this, GMP focuses on precision as one of its basic principles, and is more precise than lower-level C operations as the underlying structure for number storage uses multiple blocks for memory, not being bound by the IEEE-754 implementation for floating-point numbers.
+    
+    \newpage 
+    \section {Segmented Sieve}
+    For our approach I used a technique known as a sieve. This technique requires more memory than a typical approach, but comes with the advantage of being able to calculate arbitrary blocks of primes from 1 to N. This allows blocks of primes to be divided amongst processes or threads to be operated on independently of each other. These blocks come at the cost of requiring square root of N bytes to store the first sqrt(N) primes from 1 to N. Additionally it will require K bits of memory where K is the size of each block. To calculate the first square root of primes we used the Sieve of Eratosthenes. This returns back an array of the first N squared primes that is able to be handed to each process. \\
+    Once each process has a list of primes it is allocated a block of integers to operate over. For example, Block = $[ i_0..i_k] or [100..200]$ where the process will find all integers from 100 to 200. The Width of a block must be greater than root N. Now that we have a range we initialize an array of bits size 100 in our example(for 100 to 200 which we refer to as K). All bytes are initially set to true and called M. To Calculate the primes in our block we only need to iterate on the first root of $i_k$ primes. In this example we would only need primes from 1 to 14, p = $[2,3,5,7,11,13]$. We now iterate over this using a for loop which increments by the primes in our list p. Each iteration of this loop we mark any bits in our list M as false. The list we are left with is a list of the primes in our block. We can then iterate over M to find the largest gap. \\
+    Bench marking this algorithm we were able to achieve a run time of 12.27 seconds for N equals one billion. This requires 496 kb of memory per thread to operate. Running this algorithm will take approximately three and a half hours. Running it until 230 billion took approximately 55 minutes and required 6 megabytes of memory. This was done one a single core 2.6 GHz processor. This shows the efficiency of the algorithm and that in serial can be run in reasonable time. The algorithm is highly parallelizable as blocks can be divide into arbitrary sizes and operated on. 
+
     
     % ------------- REFERENCES --------------
     \newpage
     \section {References}
     \begin{thebibliography}{5}
-    % \bibitem{MyLS} L4\_Parallel\_Benchmarking. MyLearningSpace. (n.d.). Retrieved January 30, 2023, \emph{from https://mylearningspace.wlu.ca/d2l/le/content/471549/viewContent/3194181/View}
+    \bibitem{MyLS} L4\_Parallel\_Benchmarking. MyLearningSpace. (n.d.). Retrieved January 30, 2023, \emph{from https://mylearningspace.wlu.ca/d2l/le/content/471549/viewContent/3194181/View}
     
     \end{thebibliography}
     
