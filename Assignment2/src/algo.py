@@ -3,7 +3,7 @@ from mpi4py import MPI
 import sys, gc
 import sort
 
-BIG_N = 100_000_000 # The number of integers
+BIG_N = 100_000_00 # The number of integers
 MAX_INT = 10 * BIG_N # The range in which random ints are generated
 PRINT_LIMIT = 20 # Don't print arrays if size exceeds this value
 CHECK_CORRECTNESS = False
@@ -54,11 +54,12 @@ if rank == 0:
         print("B:      ", b)
 
     # Start merge timer
-    merge_start_time = MPI.Wtime()
+    # merge_start_time = MPI.Wtime()
 		
     # Split the list into parts based on number of cores
     a_s = np.array_split(a, size - 1)
-    
+
+
     for i in range(1, size) :
         # tag 0 is an A list block
         comm.send( len(a_s[i-1]) , dest=i, tag=3)
@@ -75,20 +76,22 @@ if rank == 0:
     # Set last element to be the length of the array
     breaks[-1] = len(b)
     #breaks = sort.split(size, b, a_s)
+    
 
     for i in range(1, size):
         # tag 1 is a B list block
         lower, upper = breaks[i-1], breaks[i]
         comm.send(len(b[lower:upper]), dest=i, tag=4)
         comm.Send([b[lower:upper], MPI.INT], dest=i, tag=1)
-
+    
     # delete a and b array to save memory and prevent spikes in RAM usage in the next part
     #   Doesn't work as intended :(
     # if (not CHECK_CORRECTNESS):
     #     del a
     #     del b
     #     gc.collect()
-    
+
+    merge_start_time = MPI.Wtime()
     # receive merged arrays.
     merged_arrays = [None] * (size-1)
     for i in range(1,size):
@@ -97,13 +100,14 @@ if rank == 0:
         merged = np.empty( size, dtype='i')
         comm.Recv([merged, MPI.INT], source=i, tag=6)
         merged_arrays[i-1] = merged
-    
+
+    merge_end_time = MPI.Wtime()
     # concatenate all merged arrays into one
     merged_arrays = np.concatenate(merged_arrays, dtype = 'i')
     print(f'Size of merged array: {sys.getsizeof(merged_arrays)/1_000_000: ,.2f} MB')
 
     # end merge timer
-    merge_end_time = MPI.Wtime()
+    # merge_end_time = MPI.Wtime()
     
     # Print final results and time
     if (BIG_N < PRINT_LIMIT):
@@ -130,8 +134,11 @@ elif rank >= 1:
 
     # Merge data and datab
     #merged = simple_merge(data, datab)
+    r = MPI.Wtime()
     merged = sort.sort(data, datab, x, y)
+    t = MPI.Wtime()
 
+    print("<>", t -r)
     # tag 5 is length of merged array, tag 6 is the merged array
     comm.send(merged.size, dest=0, tag=5) 
     comm.Send([merged, MPI.INT], dest=0, tag=6)
